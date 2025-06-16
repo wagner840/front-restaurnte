@@ -1,50 +1,92 @@
-# Plano de Refatoração para o Gráfico de Vendas por Categoria
+# Plano de Refatoração: `api.ts`
 
-## Problema
+O objetivo desta refatoração é dividir o arquivo monolítico `src/services/api.ts` em múltiplos arquivos de serviço, cada um focado em um único domínio de negócio. Isso melhorará a modularidade, a manutenibilidade e a clareza do código.
 
-O gráfico de vendas por categoria no dashboard exibe todas as categorias, mas falha em atribuir os dados de vendas corretamente. A maioria dos valores é agrupada em "Outros", "burger" ou "chopp" porque a lógica de mapeamento entre os itens vendidos e suas categorias cadastradas é frágil e suscetível a falhas por pequenas diferenças nos nomes dos produtos.
+## 1. Estrutura Proposta
 
-## Plano de Ação
-
-Para resolver o problema de forma definitiva, a função `getSalesByCategory` no arquivo `src/services/api.ts` será refatorada para garantir que os dados de vendas sejam atribuídos de forma dinâmica e precisa.
-
-### Passos da Implementação:
-
-1.  **Simplificar a Agregação de Dados:**
-
-    - A função será otimizada para usar uma única estrutura de dados que acumule as vendas por categoria dinamicamente.
-    - Em vez de inicializar todas as categorias com valor zero, uma categoria será adicionada ao totalizador apenas quando um item vendido correspondente for encontrado.
-
-2.  **Melhorar o Mapeamento de Itens:**
-
-    - Será criado um mapa de referência (`Nome do Item -> Categoria`) a partir dos `menu_items`.
-    - Para cada item em um pedido, sua categoria será buscada neste mapa.
-    - Se a categoria for encontrada, o valor da venda será somado ao total daquela categoria.
-    - Apenas os itens que não forem encontrados no mapa terão seu valor somado a "Outros".
-
-3.  **Remover Redundâncias:**
-    - As chamadas duplicadas à base de dados para buscar os itens do cardápio serão removidas para otimizar a performance.
-
-### Diagrama do Fluxo de Dados
+A nova estrutura de serviços será organizada da seguinte forma:
 
 ```mermaid
 graph TD
-    subgraph "Lógica Proposta em getSalesByCategory"
-        A[Iniciar] --> B{Buscar todos os pedidos concluídos};
-        B --> C{Buscar todos os itens do cardápio (menu_items)};
-        C --> D[Criar um mapa: 'nome normalizado do item' -> 'categoria'];
-        D --> E[Inicializar um objeto vazio para os totais de vendas: `sales = {}`];
-        E --> F{Iterar sobre cada pedido};
-        F --> G{Iterar sobre cada item do pedido};
-        G --> H{O nome do item existe no mapa?};
-        H -- Sim --> I[Adicionar valor da venda à `sales[categoria_do_mapa]`];
-        H -- Não --> J[Adicionar valor da venda à `sales['Outros']`];
-        I --> K{Fim dos itens do pedido?};
-        J --> K;
-        K -- Não --> G;
-        K -- Sim --> L{Fim de todos os pedidos?};
-        L -- Não --> F;
-        L -- Sim --> M[Formatar e retornar os dados de `sales`];
-        M --> N[Fim];
+    subgraph Frontend Components
+        direction LR
+        A[OrdersScreen]
+        B[CustomersScreen]
+        C[MenuScreen]
+        D[DashboardScreen]
     end
+
+    subgraph Services Layer
+        direction LR
+        S1[orderService.ts]
+        S2[customerService.ts]
+        S3[menuService.ts]
+        S4[dashboardService.ts]
+        S5[utils.ts]
+    end
+
+    subgraph Backend (Supabase)
+        direction LR
+        DB[(Supabase Client)]
+    end
+
+    A --> S1
+    B --> S2
+    C --> S3
+    D --> S4
+
+    S1 --> DB
+    S2 --> DB
+    S3 --> DB
+    S4 --> DB
+
+    S2 -- depends on --> S1
+
+    classDef service fill:#D6EAF8,stroke:#333,stroke-width:2px;
+    class S1,S2,S3,S4,S5 service;
 ```
+
+## 2. Mapeamento de Funções
+
+As funções do arquivo `api.ts` serão movidas para os seguintes arquivos:
+
+### `src/services/orderService.ts`
+
+- `getOrders`
+- `createOrder`
+- `updateOrderStatus`
+- `getOrdersByCustomer`
+
+### `src/services/customerService.ts`
+
+- `getCustomers`
+- `createCustomer` (e seu alias `addCustomer`)
+- `updateCustomerBirthdayStatus` (e seus aliases `updateCustomerGiftStatus`, `updateBirthdayStatus`)
+- `getCustomerByWhatsapp`
+- `getBirthdayCustomers`
+- `getCustomerDetails` (dependerá de `orderService.ts`)
+
+### `src/services/menuService.ts`
+
+- `getMenuItems`
+- `addMenuItem`
+- `updateMenuItem`
+- `deleteMenuItem`
+
+### `src/services/dashboardService.ts`
+
+- `getDashboardStats`
+- `getSalesByCategory`
+- `getActiveCustomers`
+- `getRevenueGrowth`
+
+### `src/lib/utils.ts`
+
+- `normalizeString`
+
+## 3. Passos de Execução
+
+1.  **Criação dos Novos Arquivos:** Criar os quatro novos arquivos de serviço (`orderService.ts`, `customerService.ts`, `menuService.ts`, `dashboardService.ts`) no diretório `src/services/`.
+2.  **Migração das Funções:** Mover o código de cada função para seu respectivo novo arquivo, garantindo que todas as importações necessárias (`supabaseClient`, tipos, etc.) sejam adicionadas.
+3.  **Atualização das Importações:** Realizar uma busca global no projeto para encontrar todos os locais que importam de `src/services/api.ts` e atualizá-los para que importem dos novos módulos de serviço correspondentes.
+4.  **Remoção do Arquivo Antigo:** Após confirmar que todas as dependências foram atualizadas e que a aplicação continua funcionando como esperado, o arquivo `src/services/api.ts` será removido do projeto.

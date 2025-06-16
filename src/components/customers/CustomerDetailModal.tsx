@@ -10,7 +10,7 @@ import {
   Calendar,
   Gift,
 } from "lucide-react";
-import { updateCustomerGiftStatus } from "../../services/api";
+import { updateCustomerGiftStatus } from "../../services/customerService";
 
 interface CustomerDetails {
   totalOrders: number;

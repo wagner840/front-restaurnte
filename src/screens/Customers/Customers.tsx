@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getCustomers, getCustomerDetails } from "../../services/api";
+import {
+  getCustomers,
+  getCustomerDetails,
+} from "../../services/customerService";
 import { Customer, CustomerDetails } from "../../types";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";

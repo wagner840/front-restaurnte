@@ -1,5 +1,5 @@
 import React, { useState, MouseEvent } from "react";
-import { addCustomer } from "../../services/api";
+import { addCustomer } from "../../services/customerService";
 
 interface AddCustomerModalProps {
   isOpen: boolean;

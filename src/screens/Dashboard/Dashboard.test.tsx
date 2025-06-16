@@ -1,12 +1,14 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { Dashboard } from "./Dashboard";
-import * as api from "../../services/api";
 import { Order, DashboardStats } from "../../types";
 import { SalesByCategoryData } from "../../components/dashboard/SalesByCategoryChart";
+import * as dashboardService from "../../services/dashboardService";
+import * as orderService from "../../services/orderService";
 
-// Mock das funções da API
-vi.mock("../../services/api");
+// Mock dos novos módulos de serviço
+vi.mock("../../services/dashboardService");
+vi.mock("../../services/orderService");
 
 const mockStats: DashboardStats = {
   totalOrders: 10,
@@ -53,11 +55,15 @@ describe("Dashboard", () => {
     vi.resetAllMocks();
 
     // Configurar o retorno mockado para cada função da API
-    vi.spyOn(api, "getDashboardStats").mockResolvedValue(mockStats);
-    vi.spyOn(api, "getOrders").mockResolvedValue(mockOrders);
-    vi.spyOn(api, "getSalesByCategory").mockResolvedValue(mockSalesByCategory);
-    vi.spyOn(api, "getActiveCustomers").mockResolvedValue(25);
-    vi.spyOn(api, "getRevenueGrowth").mockResolvedValue(15.5);
+    vi.spyOn(dashboardService, "getDashboardStats").mockResolvedValue(
+      mockStats
+    );
+    vi.spyOn(orderService, "getOrders").mockResolvedValue(mockOrders);
+    vi.spyOn(dashboardService, "getSalesByCategory").mockResolvedValue(
+      mockSalesByCategory
+    );
+    vi.spyOn(dashboardService, "getActiveCustomers").mockResolvedValue(25);
+    vi.spyOn(dashboardService, "getRevenueGrowth").mockResolvedValue(15.5);
   });
 
   it("deve renderizar os cards de estatísticas com os dados corretos", async () => {

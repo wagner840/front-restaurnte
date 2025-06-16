@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Customer, BirthdayStatus } from "../../types";
-import { updateBirthdayStatus } from "../../services/api";
+import { updateBirthdayStatus } from "../../services/customerService";
 import { Button } from "../ui/button";
 
 interface StatusUpdateButtonProps {

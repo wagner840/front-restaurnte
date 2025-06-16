@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Customer } from "../../types";
-import { getBirthdayCustomers } from "../../services/api";
+import { getBirthdayCustomers } from "../../services/customerService";
 import { BirthdayCustomerCard } from "../../components/birthdays/BirthdayCustomerCard";
 
 export const BirthdaysScreen: React.FC = () => {

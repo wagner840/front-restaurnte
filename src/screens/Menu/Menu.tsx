@@ -4,9 +4,13 @@ import MenuItemFormModal from "../../components/menu/MenuItemFormModal";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Plus, Search } from "lucide-react";
-import { getMenuItems } from "../../services/api";
+import {
+  getMenuItems,
+  addMenuItem,
+  updateMenuItem,
+  deleteMenuItem,
+} from "../../services/menuService";
 import { MenuItem } from "../../types";
-import { supabase } from "../../lib/supabaseClient";
 
 export const Menu: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,35 +60,22 @@ export const Menu: React.FC = () => {
   };
 
   const handleSubmit = async (
-    itemData: Omit<MenuItem, "id" | "image" | "available">
+    itemData: Omit<MenuItem, "id" | "image" | "available" | "created_at">
   ) => {
     try {
       if (editingItem) {
-        // Edição
-        const { data, error } = await supabase
-          .from("menu_items")
-          .update({ ...itemData, available: editingItem.available })
-          .eq("id", editingItem.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        if (data) {
-          setItems(items.map((item) => (item.id === data.id ? data : item)));
+        const updatedItem = await updateMenuItem(editingItem.id, itemData);
+        if (updatedItem) {
+          setItems((prevItems) =>
+            prevItems.map((item) =>
+              item.id === updatedItem.id ? updatedItem : item
+            )
+          );
         }
       } else {
-        // Criação
-        const { data, error } = await supabase
-          .from("menu_items")
-          .insert([{ ...itemData, image: null, available: true }])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        if (data) {
-          setItems([...items, data]);
+        const newItem = await addMenuItem({ ...itemData, available: true });
+        if (newItem) {
+          setItems((prevItems) => [...prevItems, newItem]);
         }
       }
       handleCloseModal();
@@ -109,9 +100,14 @@ export const Menu: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    // TODO: Implement delete functionality with API call
-    setItems(items.filter((item) => item.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteMenuItem(id);
+      setItems(items.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error("Erro ao deletar o item do cardápio:", error);
+      setError("Falha ao deletar o item. Tente novamente.");
+    }
   };
 
   return (

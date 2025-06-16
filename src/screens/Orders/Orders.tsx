@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { OrderCard } from "../../components/orders/OrderCard";
-import { getOrders, updateOrderStatus } from "../../services/api";
+import { getOrders, updateOrderStatus } from "../../services/orderService";
 import { Order } from "../../types";
 
 export const Orders: React.FC = () => {

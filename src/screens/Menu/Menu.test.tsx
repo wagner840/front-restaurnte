@@ -6,13 +6,13 @@ import {
   within,
 } from "@testing-library/react";
 import { Menu } from "./Menu";
-import * as api from "../../services/api";
+import * as menuService from "../../services/menuService";
 import { supabase } from "../../lib/supabaseClient";
 import { MenuItem } from "../../types";
 import { vi, Mock } from "vitest";
 
 // Mock para a API de serviços
-vi.mock("../../services/api");
+vi.mock("../../services/menuService");
 
 // Mock para o Supabase
 vi.mock("../../lib/supabaseClient", () => ({
@@ -59,7 +59,7 @@ const mockMenuItems: MenuItem[] = [
 describe("Menu Screen", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.getMenuItems as Mock).mockResolvedValue([...mockMenuItems]);
+    (menuService.getMenuItems as Mock).mockResolvedValue([...mockMenuItems]);
   });
 
   test("deve renderizar a lista de itens do cardápio", async () => {

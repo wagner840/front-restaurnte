@@ -1,5 +1,15 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      secrets:
+        - dotenv
     ports:
       - "3000:80"
+    env_file:
+      - .env.local
+
+secrets:
+  dotenv:
+    file: .env.local

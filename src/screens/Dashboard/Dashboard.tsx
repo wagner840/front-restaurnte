@@ -15,11 +15,11 @@ import {
 } from "lucide-react";
 import {
   getDashboardStats,
-  getOrders,
   getSalesByCategory,
   getActiveCustomers,
   getRevenueGrowth,
-} from "../../services/api";
+} from "../../services/dashboardService";
+import { getOrders } from "../../services/orderService";
 import { Order, DashboardStats } from "../../types";
 
 export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({

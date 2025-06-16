@@ -6,12 +6,12 @@ import {
   within,
 } from "@testing-library/react";
 import { Customers } from "./Customers";
-import * as api from "../../services/api";
+import * as customerService from "../../services/customerService";
 import { Customer, CustomerDetails } from "../../types";
 import { vi, Mock } from "vitest";
 
 // Mock para a API de serviços
-vi.mock("../../services/api");
+vi.mock("../../services/customerService");
 
 const mockCustomers: Customer[] = [
   {
@@ -65,9 +65,13 @@ const newCustomer: Customer = {
 describe("Customers Screen", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.getCustomers as Mock).mockResolvedValue([...mockCustomers]);
-    (api.getCustomerDetails as Mock).mockResolvedValue(mockCustomerDetails);
-    (api.addCustomer as Mock).mockResolvedValue(newCustomer);
+    (customerService.getCustomers as Mock).mockResolvedValue([
+      ...mockCustomers,
+    ]);
+    (customerService.getCustomerDetails as Mock).mockResolvedValue(
+      mockCustomerDetails
+    );
+    (customerService.addCustomer as Mock).mockResolvedValue(newCustomer);
   });
 
   test("deve renderizar a lista de clientes", async () => {
@@ -112,7 +116,7 @@ describe("Customers Screen", () => {
 
   test("deve abrir o modal, adicionar um novo cliente e exibi-lo na lista", async () => {
     // Mock a chamada getCustomers para retornar a nova lista após a adição
-    (api.getCustomers as Mock)
+    (customerService.getCustomers as Mock)
       .mockResolvedValueOnce([...mockCustomers])
       .mockResolvedValueOnce([...mockCustomers, newCustomer]);
 

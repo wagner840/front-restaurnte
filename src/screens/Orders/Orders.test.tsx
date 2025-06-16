@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import { vi } from "vitest";
 import { Orders } from "./Orders";
-import * as api from "../../services/api";
+import * as orderService from "../../services/orderService";
 import { Order } from "../../types";
 
 // Mock dos dados de pedidos
@@ -48,8 +48,8 @@ const mockOrders: Order[] = [
 ];
 
 // Mock das funções da API
-vi.mock("../../services/api");
-const mockedApi = vi.mocked(api);
+vi.mock("../../services/orderService");
+const mockedOrderService = vi.mocked(orderService);
 
 describe("Orders Screen", () => {
   beforeEach(() => {
@@ -59,7 +59,7 @@ describe("Orders Screen", () => {
 
   test("deve renderizar a lista de pedidos corretamente", async () => {
     // Configura o mock para getOrders
-    mockedApi.getOrders.mockResolvedValue(mockOrders);
+    mockedOrderService.getOrders.mockResolvedValue(mockOrders);
 
     render(<Orders />);
 
@@ -81,7 +81,7 @@ describe("Orders Screen", () => {
   });
 
   test("deve filtrar pedidos por tipo 'delivery'", async () => {
-    mockedApi.getOrders.mockResolvedValue(mockOrders);
+    mockedOrderService.getOrders.mockResolvedValue(mockOrders);
     render(<Orders />);
 
     await waitFor(() => {
@@ -98,7 +98,7 @@ describe("Orders Screen", () => {
   });
 
   test("deve filtrar pedidos por tipo 'retirada'", async () => {
-    mockedApi.getOrders.mockResolvedValue(mockOrders);
+    mockedOrderService.getOrders.mockResolvedValue(mockOrders);
     render(<Orders />);
 
     await waitFor(() => {
@@ -115,7 +115,7 @@ describe("Orders Screen", () => {
   });
 
   test("deve filtrar pedidos por status 'pendentes'", async () => {
-    mockedApi.getOrders.mockResolvedValue(mockOrders);
+    mockedOrderService.getOrders.mockResolvedValue(mockOrders);
     render(<Orders />);
 
     await waitFor(() => {
@@ -132,9 +132,9 @@ describe("Orders Screen", () => {
   });
 
   test("deve atualizar o status de um pedido", async () => {
-    mockedApi.getOrders.mockResolvedValue(mockOrders);
+    mockedOrderService.getOrders.mockResolvedValue(mockOrders);
     // Mock da função de atualização para retornar o pedido com o novo status
-    mockedApi.updateOrderStatus.mockImplementation(
+    mockedOrderService.updateOrderStatus.mockImplementation(
       async (orderId, newStatus) => {
         const order = mockOrders.find((o) => o.order_id === orderId);
         if (order) {
@@ -165,7 +165,7 @@ describe("Orders Screen", () => {
 
     // Verifica se a API foi chamada e aguarda a atualização da UI
     await waitFor(() => {
-      expect(mockedApi.updateOrderStatus).toHaveBeenCalledWith(
+      expect(mockedOrderService.updateOrderStatus).toHaveBeenCalledWith(
         "1",
         "confirmed"
       );
@@ -188,7 +188,7 @@ describe("Orders Screen", () => {
 
   test("deve exibir mensagem de erro se a busca de pedidos falhar", async () => {
     const errorMessage = "Falha na conexão com a API";
-    mockedApi.getOrders.mockRejectedValue(new Error(errorMessage));
+    mockedOrderService.getOrders.mockRejectedValue(new Error(errorMessage));
 
     render(<Orders />);
 
