@@ -44,6 +44,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
               size="sm"
               onClick={() => onEdit(item)}
               className="p-2"
+              aria-label="Editar item"
             >
               <Edit size={16} />
             </Button>
@@ -52,6 +53,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
               size="sm"
               onClick={() => onDelete(item.id)}
               className="p-2 text-red-600 hover:bg-red-100 hover:text-red-700"
+              aria-label="Deletar item"
             >
               <Trash2 size={16} />
             </Button>

@@ -71,7 +71,12 @@ export const CustomerDetailModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[95vh] flex flex-col animate-in fade-in-0 zoom-in-95">
+      <div
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[95vh] flex flex-col animate-in fade-in-0 zoom-in-95"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="customer-detail-title"
+      >
         {/* Header */}
         <div className="flex items-start justify-between p-4 sm:p-6 border-b">
           <div className="flex items-center gap-4">
@@ -79,7 +84,10 @@ export const CustomerDetailModal: React.FC<Props> = ({
               <User className="w-6 h-6 text-orange-500" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+              <h2
+                id="customer-detail-title"
+                className="text-xl sm:text-2xl font-bold text-gray-900"
+              >
                 {customer.name}
               </h2>
               <p className="text-sm text-gray-500 truncate">{customer.email}</p>

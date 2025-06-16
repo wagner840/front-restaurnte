@@ -78,7 +78,11 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
       className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
       onClick={handleOverlayClick}
     >
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative">
+      <div
+        className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative"
+        role="dialog"
+        aria-modal="true"
+      >
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"

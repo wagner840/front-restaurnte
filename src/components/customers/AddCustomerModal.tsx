@@ -63,7 +63,12 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
       className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
       onClick={handleOverlayClick}
     >
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative">
+      <div
+        className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-customer-title"
+      >
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
@@ -84,7 +89,10 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
             />
           </svg>
         </button>
-        <h2 className="text-2xl font-bold mb-6 text-center">
+        <h2
+          id="add-customer-title"
+          className="text-2xl font-bold mb-6 text-center"
+        >
           Adicionar Novo Cliente
         </h2>
         {error && (

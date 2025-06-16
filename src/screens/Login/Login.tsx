@@ -12,19 +12,19 @@ export const Login = (): JSX.Element => {
   const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
-    try {
-      await login(email, password);
-    } catch (error: any) {
-      setError(error.message || "Ocorreu um erro ao tentar fazer login.");
-      console.error("Login failed:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    login(email, password)
+      .catch((error: any) => {
+        setError(error.message || "Ocorreu um erro ao tentar fazer login.");
+        console.error("Login failed:", error);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
 
   return (
