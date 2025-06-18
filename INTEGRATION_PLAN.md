@@ -1,53 +1,73 @@
-# Plano de Integração com o Supabase
+# Plano de Implementação e Melhorias
 
-Este documento detalha o plano para integrar o Supabase a este projeto de dashboard de restaurante, substituindo os dados mockados por uma fonte de dados real.
+Este documento serve como um roteiro e checklist para as melhorias e novas features a serem implementadas no projeto.
 
-## Fase 1: Configuração e Instalação
+---
 
-1.  **Instalar a Biblioteca do Supabase:** Adicionar o cliente Supabase como uma dependência do projeto.
-    ```bash
-    npm install @supabase/supabase-js
-    ```
-2.  **Configurar Variáveis de Ambiente:** Criar um arquivo `.env.local` na raiz do projeto para armazenar de forma segura a URL e a chave anônima (anon key) do Supabase.
-    ```
-    VITE_SUPABASE_URL=https://cjbivegezpcqqsaiwlmk.supabase.co
-    VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqYml2ZWdlenBjcXFzYWl3bG1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxNDg5ODQsImV4cCI6MjA2NDcyNDk4NH0.ByjkXfXm6dkA2H0BDrMkBfMcOR9gA9V9y5RsTweO0A8
-    ```
-3.  **Inicializar o Cliente Supabase:** Criar um arquivo de configuração centralizado (`src/lib/supabaseClient.ts`) para inicializar o cliente Supabase.
+## Fase 1: Setup e Configuração da Base
 
-## Fase 2: Autenticação
+_O objetivo desta fase é instalar e configurar as bibliotecas fundamentais que servirão de alicerce para as próximas melhorias._
 
-1.  **Atualizar o Hook de Autenticação:** Modificar o hook `src/hooks/useAuth.ts` para interagir com o sistema de autenticação do Supabase.
-    - Verificar a sessão do usuário no carregamento inicial.
-    - Implementar as funções de login e logout.
-2.  **Atualizar a Tela de Login:** Conectar o formulário de login em `src/screens/Login/Login.tsx` para usar as novas funções de autenticação.
+- [x] **1.1: Instalar Dependências Principais**
 
-## Fase 3: Migração dos Dados
+  - [x] Instalar `@tanstack/react-query` para gerenciamento de estado do servidor.
+  - [x] Instalar `sonner` para o sistema de notificações (toasts).
 
-1.  **Criar Funções de Serviço:** Desenvolver um conjunto de funções (ex: em `src/services/api.ts`) para buscar os dados das tabelas no Supabase (`customers`, `orders`, `addresses`).
-2.  **Substituir Dados Mockados:** Substituir as importações estáticas de `src/data/mockData.ts` por chamadas às novas funções de serviço que buscam dados do Supabase.
-3.  **Atualizar Tipos:** Garantir que as interfaces em `src/types/index.ts` correspondam à estrutura dos dados do Supabase.
+- [x] **1.2: Configurar Provedores Globais**
+  - [x] Envolver a aplicação com o `QueryClientProvider` no arquivo `src/App.tsx`.
+  - [x] Adicionar o componente `<Toaster />` da `sonner` no layout principal para renderizar as notificações.
 
-## Visualização do Fluxo de Dados
+---
 
-```mermaid
-graph TD
-    subgraph Frontend (React App)
-        A[Componente Dashboard] --> B{Hook (ex: useOrders)};
-        B --> C[Funções de API (api.ts)];
-    end
+## Fase 2: Refatoração do Gerenciamento de Estado com React Query
 
-    subgraph Backend (Supabase)
-        D[Tabela orders]
-        E[Tabela customers]
-    end
+_O objetivo é refatorar uma tela principal para usar o React Query, eliminando a lógica manual de `useState` para dados, loading e erros._
 
-    C -- "supabase.from('orders').select(...)" --> D;
-    C -- "supabase.from('customers').select(...)" --> E;
+- [ ] **2.1: Refatorar a Tela de Cardápio (`MenuScreen`)**
+  - [ ] Criar um hook customizado (ex: `useMenuItems`) que utiliza `useQuery` para buscar os itens do cardápio.
+  - [ ] Substituir a lógica de `useEffect` e `useState` em `src/screens/Menu/Menu.tsx` pelo novo hook.
+  - [ ] Criar um hook customizado (ex: `useCreateMenuItem`) que utiliza `useMutation` para adicionar novos itens.
+  - [ ] Integrar a mutação no `MenuItemFormModal.tsx`.
 
-    D -- Dados dos Pedidos --> C;
-    E -- Dados dos Clientes --> C;
+---
 
-    C -- Dados Formatados --> B;
-    B -- "state (loading, data, error)" --> A;
-```
+## Fase 3: Feedback Visual com Notificações (Toasts)
+
+_O objetivo é fornecer feedback claro e imediato ao usuário sobre o resultado de suas ações._
+
+- [ ] **3.1: Integrar Notificações no CRUD de Cardápio**
+  - [ ] Na mutação `useCreateMenuItem`, adicionar chamadas `toast.success()` no callback `onSuccess`.
+  - [ ] Adicionar chamadas `toast.error()` no callback `onError` para informar o usuário sobre falhas.
+  - [ ] Implementar o mesmo padrão para as mutações de **Update** e **Delete**.
+
+---
+
+## Fase 4: Otimização da UI com "Optimistic Updates"
+
+_O objetivo é fazer a interface parecer instantaneamente responsiva, atualizando a UI antes mesmo da confirmação da API._
+
+- [ ] **4.1: Implementar "Optimistic Update" na Exclusão de Itens**
+  - [ ] Refatorar a mutação de exclusão de item para remover o item da lista da UI imediatamente.
+  - [ ] Implementar a lógica de `onSettled` e `onError` para reverter a alteração na UI caso a chamada à API falhe.
+
+---
+
+## Fase 5: Notificações em Tempo Real
+
+_O objetivo é usar o poder do Supabase Realtime para que os dados mais críticos sejam atualizados na tela sem a necessidade de recarregar a página._
+
+- [ ] **5.1: Implementar Atualizações em Tempo Real na Tela de Pedidos**
+  - [ ] Criar uma nova função no `orderService.ts` para se inscrever nas alterações da tabela `orders` do Supabase.
+  - [ ] Criar um hook `useRealtimeOrders` que utiliza essa função e invalida a query de pedidos do React Query (`queryClient.invalidateQueries`) sempre que uma nova atualização chegar.
+  - [ ] Integrar este hook na tela `src/screens/Orders/Orders.tsx`.
+
+---
+
+## Fase 6: Testes e Documentação Final
+
+_O objetivo é garantir a qualidade das novas implementações e atualizar a documentação para refletir o estado final do projeto._
+
+- [ ] **6.1: Adicionar Testes para os Novos Hooks**
+  - [ ] Criar arquivos de teste para os hooks customizados do React Query (ex: `useMenuItems.test.tsx`).
+- [ ] **6.2: Atualizar Documentação Técnica**
+  - [ ] Revisar o `DOCUMENTACAO.md` para incluir detalhes sobre o uso do React Query, Sonner e Supabase Realtime.

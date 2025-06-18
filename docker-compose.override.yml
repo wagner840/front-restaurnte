@@ -6,14 +6,7 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      # Mapeia o código-fonte local para o diretório de trabalho no contêiner
-      - ./src:/app/src
-      # Mapeia outros arquivos de configuração importantes
-      - ./public:/app/public
-      - ./index.html:/app/index.html
-      - ./vite.config.ts:/app/vite.config.ts
-      - ./tsconfig.json:/app/tsconfig.json
-      - ./tailwind.config.js:/app/tailwind.config.js
-    # Garante que as dependências instaladas localmente não interfiram
-    # com as dependências dentro do contêiner.
+      # Mapeia o código-fonte local, mas isola a node_modules
+      - .:/app
+      - /app/node_modules
     command: ["npm", "run", "dev"]

@@ -1,92 +1,54 @@
-# Plano de Refatoração: `api.ts`
+# Plano de Refatoração: Implementação do Design System com Tailwind CSS
 
-O objetivo desta refatoração é dividir o arquivo monolítico `src/services/api.ts` em múltiplos arquivos de serviço, cada um focado em um único domínio de negócio. Isso melhorará a modularidade, a manutenibilidade e a clareza do código.
+## Contexto
 
-## 1. Estrutura Proposta
+Com base em um diagnóstico de UI/UX, esta refatoração visa implementar um Design System unificado para garantir consistência visual e melhorar a experiência do usuário na aplicação. A tecnologia central para esta implementação é o Tailwind CSS.
 
-A nova estrutura de serviços será organizada da seguinte forma:
+## Fases do Projeto
+
+### Fase 1: Definir as Fundações do Design System no `tailwind.config.js`
+
+O objetivo desta fase é estabelecer as bases visuais do projeto, garantindo que todos os novos componentes e telas sigam um padrão coeso.
+
+1.  **Atualizar a Paleta de Cores:**
+    - **Primária:** Definir um azul mais vibrante para elementos de destaque e interações principais.
+    - **Secundária:** Definir uma cor para ações secundárias.
+    - **Status:** Criar cores harmoniosas para sucesso (verde) e erro/destrutivo (vermelho).
+2.  **Padronizar a Tipografia:**
+    - Adicionar uma seção `fontSize` no `theme.extend` para criar classes de texto padronizadas (ex: `text-h1`, `text-body`).
+3.  **Estruturar o Espaçamento:**
+    - Assegurar que a aplicação utilize consistentemente os múltiplos de 8px do sistema de espaçamento do Tailwind para `padding`, `margin` e `gap`.
 
 ```mermaid
 graph TD
-    subgraph Frontend Components
-        direction LR
-        A[OrdersScreen]
-        B[CustomersScreen]
-        C[MenuScreen]
-        D[DashboardScreen]
-    end
-
-    subgraph Services Layer
-        direction LR
-        S1[orderService.ts]
-        S2[customerService.ts]
-        S3[menuService.ts]
-        S4[dashboardService.ts]
-        S5[utils.ts]
-    end
-
-    subgraph Backend (Supabase)
-        direction LR
-        DB[(Supabase Client)]
-    end
-
-    A --> S1
-    B --> S2
-    C --> S3
-    D --> S4
-
-    S1 --> DB
-    S2 --> DB
-    S3 --> DB
-    S4 --> DB
-
-    S2 -- depends on --> S1
-
-    classDef service fill:#D6EAF8,stroke:#333,stroke-width:2px;
-    class S1,S2,S3,S4,S5 service;
+    A[Início] --> B{Atualizar tailwind.config.js};
+    B --> C[Definir Paleta de Cores];
+    B --> D[Definir Padrões de Tipografia];
+    B --> E[Revisar Sistema de Espaçamento];
 ```
 
-## 2. Mapeamento de Funções
+### Fase 2: Refatorar a Tela de Pedidos como Prova de Conceito
 
-As funções do arquivo `api.ts` serão movidas para os seguintes arquivos:
+Esta fase aplicará o novo Design System a um componente e tela críticos para validar a abordagem e servir como exemplo para futuras refatorações.
 
-### `src/services/orderService.ts`
+1.  **Refatorar `src/components/orders/OrderCard.tsx`:**
+    - **Hierarquia Visual:**
+      - Aumentar o tamanho da fonte do nome do cliente (`font-bold text-lg`).
+      - Utilizar ícones (`lucide-react`) para diferenciar "Delivery" e "Retirada".
+      - Tornar a tag de status do pedido mais proeminente com as novas cores de status.
+    - **Limpeza de Código:** Substituir quaisquer estilos inline ou classes de CSS customizadas por classes utilitárias do Tailwind.
+2.  **Refatorar `src/screens/Orders/Orders.tsx`:**
+    - Aplicar as novas classes de tipografia para títulos e descrições.
+    - Ajustar os espaçamentos entre os elementos (filtros, cards) para seguir o padrão de 8px.
+    - Garantir que os botões e badges de filtro utilizem as novas cores primárias e secundárias.
 
-- `getOrders`
-- `createOrder`
-- `updateOrderStatus`
-- `getOrdersByCustomer`
-
-### `src/services/customerService.ts`
-
-- `getCustomers`
-- `createCustomer` (e seu alias `addCustomer`)
-- `updateCustomerBirthdayStatus` (e seus aliases `updateCustomerGiftStatus`, `updateBirthdayStatus`)
-- `getCustomerByWhatsapp`
-- `getBirthdayCustomers`
-- `getCustomerDetails` (dependerá de `orderService.ts`)
-
-### `src/services/menuService.ts`
-
-- `getMenuItems`
-- `addMenuItem`
-- `updateMenuItem`
-- `deleteMenuItem`
-
-### `src/services/dashboardService.ts`
-
-- `getDashboardStats`
-- `getSalesByCategory`
-- `getActiveCustomers`
-- `getRevenueGrowth`
-
-### `src/lib/utils.ts`
-
-- `normalizeString`
-
-## 3. Passos de Execução
-
-1.  **Criação dos Novos Arquivos:** Criar os quatro novos arquivos de serviço (`orderService.ts`, `customerService.ts`, `menuService.ts`, `dashboardService.ts`) no diretório `src/services/`.
-2.  **Migração das Funções:** Mover o código de cada função para seu respectivo novo arquivo, garantindo que todas as importações necessárias (`supabaseClient`, tipos, etc.) sejam adicionadas.
-3.  **Atualização das Importações:** Realizar uma busca global no projeto para encontrar todos os locais que importam de `src/services/api.ts` e atualizá-los para que importem dos novos módulos de serviço correspondentes.
-4.  **Remoção do Arquivo Antigo:** Após confirmar que todas as dependências foram atualizadas e que a aplicação continua funcionando como esperado, o arquivo `src/services/api.ts` será removido do projeto.
+```mermaid
+graph TD
+    F[Fase 2: Refatoração] --> G{Componente: OrderCard.tsx};
+    G --> H[Aumentar Nome do Cliente];
+    G --> I[Adicionar Ícones para Tipo de Pedido];
+    G --> J[Destacar Tag de Status];
+    F --> K{Tela: Orders.tsx};
+    K --> L[Aplicar Nova Tipografia e Cores];
+    K --> M[Ajustar Espaçamentos];
+```

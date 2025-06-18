@@ -1,11 +1,19 @@
-import React, { useState, useRef, useEffect } from "react";
+import React from "react";
 import { Customer, BirthdayStatus } from "../../types";
 import { updateBirthdayStatus } from "../../services/customerService";
 import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ChevronDown } from "lucide-react";
 
 interface StatusUpdateButtonProps {
   customer: Customer;
-  onStatusChange: (updatedCustomer: Customer) => void;
 }
 
 const statusOptions: BirthdayStatus[] = [
@@ -28,76 +36,42 @@ const statusLabels: Record<BirthdayStatus, string> = {
 
 export const StatusUpdateButton: React.FC<StatusUpdateButtonProps> = ({
   customer,
-  onStatusChange,
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [showOptions, setShowOptions] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
-  const handleStatusUpdate = async (newStatus: BirthdayStatus) => {
-    if (newStatus === customer.birthday_status) {
-      setShowOptions(false);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const updatedCustomer = await updateBirthdayStatus(
-        customer.customer_id,
-        newStatus
-      );
-      onStatusChange(updatedCustomer);
-    } catch (error) {
-      console.error("Failed to update status", error);
-    } finally {
-      setIsLoading(false);
-      setShowOptions(false);
-    }
-  };
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(event.target as Node)
-      ) {
-        setShowOptions(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [wrapperRef]);
+  const mutation = useMutation({
+    mutationFn: ({ newStatus }: { newStatus: BirthdayStatus }) =>
+      updateBirthdayStatus(customer.customer_id, newStatus),
+    onSuccess: () => {
+      toast.success("Status do cliente atualizado.");
+      queryClient.invalidateQueries({ queryKey: ["birthdayCustomers"] });
+    },
+    onError: () => {
+      toast.error("Falha ao atualizar o status.");
+    },
+  });
 
   return (
-    <div className="relative" ref={wrapperRef}>
-      <Button
-        onClick={() => setShowOptions(!showOptions)}
-        disabled={isLoading}
-        variant="outline"
-        className="w-auto" // Largura automática para se ajustar ao conteúdo
-      >
-        {isLoading
-          ? "Salvando..."
-          : statusLabels[customer.birthday_status || "eligible"]}
-      </Button>
-      {showOptions && (
-        // O z-index garante que o dropdown apareça sobre outros elementos.
-        <div className="absolute z-20 mt-2 w-48 bg-white rounded-md shadow-lg border right-0">
-          <ul className="py-1">
-            {statusOptions.map((status) => (
-              <li
-                key={status}
-                onClick={() => handleStatusUpdate(status)}
-                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-              >
-                {statusLabels[status]}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" disabled={mutation.isPending}>
+          {mutation.isPending
+            ? "Salvando..."
+            : statusLabels[customer.birthday_status || "eligible"]}
+          <ChevronDown className="ml-2 h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {statusOptions.map((status) => (
+          <DropdownMenuItem
+            key={status}
+            onClick={() => mutation.mutate({ newStatus: status })}
+            disabled={status === customer.birthday_status}
+          >
+            {statusLabels[status]}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };

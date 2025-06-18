@@ -1,195 +1,154 @@
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Customers } from "./Customers";
-import * as customerService from "../../services/customerService";
-import { Customer, CustomerDetails } from "../../types";
-import { vi, Mock } from "vitest";
+import { useCustomers, useCreateCustomer } from "../../hooks/useCustomers";
+import { Customer } from "../../types";
+import React from "react";
 
-// Mock para a API de serviços
-vi.mock("../../services/customerService");
+// Mock dos hooks
+jest.mock("../../hooks/useCustomers");
+const mockedUseCustomers = useCustomers as jest.Mock;
+const mockedUseCreateCustomer = useCreateCustomer as jest.Mock;
 
 const mockCustomers: Customer[] = [
   {
     customer_id: "1",
-    name: "João Silva",
-    email: "joao.silva@example.com",
-    whatsapp: "11999998888",
-    created_at: new Date().toISOString(),
-    birthday: "1990-01-15",
-    unique_code: "JS123",
+    name: "Alice Johnson",
+    whatsapp: "11987654321",
+    email: "alice@example.com",
+    birthday: "1990-05-15",
+    unique_code: "ALICE123",
     birthday_status: "eligible",
+    created_at: new Date().toISOString(),
     last_contacted_at: null,
-    Is_Gift_Used: "Não",
+    Is_Gift_Used: null,
     whatsapp_chat_id: null,
   },
   {
     customer_id: "2",
-    name: "Maria Oliveira",
-    email: "maria.oliveira@example.com",
-    whatsapp: "21988887777",
+    name: "Bob Williams",
+    whatsapp: "21912345678",
+    email: "bob@example.com",
+    birthday: "1988-10-20",
+    unique_code: "BOB456",
+    birthday_status: "booked",
     created_at: new Date().toISOString(),
-    birthday: "1985-05-20",
-    unique_code: "MO456",
-    birthday_status: "completed",
     last_contacted_at: null,
-    Is_Gift_Used: "Sim",
+    Is_Gift_Used: null,
     whatsapp_chat_id: null,
   },
 ];
 
-const mockCustomerDetails: CustomerDetails = {
-  totalOrders: 5,
-  totalSpent: 450.75,
-  favoriteDays: ["Sexta-feira", "Sábado"],
-};
-
-const newCustomer: Customer = {
-  customer_id: "3",
-  name: "Carlos Pereira",
-  email: "carlos.p@example.com",
-  whatsapp: "31977776666",
-  created_at: new Date().toISOString(),
-  birthday: "1992-03-10",
-  unique_code: "CP789",
-  birthday_status: "eligible",
-  last_contacted_at: null,
-  Is_Gift_Used: "Não",
-  whatsapp_chat_id: null,
-};
+const queryClient = new QueryClient();
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={queryClient}>
+    <MemoryRouter>{children}</MemoryRouter>
+  </QueryClientProvider>
+);
 
 describe("Customers Screen", () => {
+  const mockMutateAsync = jest.fn();
+
   beforeEach(() => {
-    vi.clearAllMocks();
-    (customerService.getCustomers as Mock).mockResolvedValue([
-      ...mockCustomers,
-    ]);
-    (customerService.getCustomerDetails as Mock).mockResolvedValue(
-      mockCustomerDetails
-    );
-    (customerService.addCustomer as Mock).mockResolvedValue(newCustomer);
-  });
-
-  test("deve renderizar a lista de clientes", async () => {
-    render(<Customers />);
-    await waitFor(() => {
-      expect(screen.getByText("João Silva")).toBeInTheDocument();
-      expect(screen.getByText("Maria Oliveira")).toBeInTheDocument();
+    jest.clearAllMocks();
+    mockedUseCreateCustomer.mockReturnValue({
+      mutateAsync: mockMutateAsync,
+      isPending: false,
     });
   });
 
-  test("deve filtrar clientes por nome", async () => {
-    render(<Customers />);
-    await waitFor(() =>
-      expect(screen.getByText("João Silva")).toBeInTheDocument()
-    );
-
-    const searchInput = screen.getByPlaceholderText(
-      "Buscar clientes por nome ou e-mail..."
-    );
-    fireEvent.change(searchInput, { target: { value: "João" } });
-
-    expect(screen.getByText("João Silva")).toBeInTheDocument();
-    expect(screen.queryByText("Maria Oliveira")).not.toBeInTheDocument();
+  it("should display a loader while fetching customers", () => {
+    mockedUseCustomers.mockReturnValue({ data: [], isLoading: true });
+    render(<Customers />, { wrapper });
+    expect(
+      screen.getByRole("alert", { name: /carregando/i })
+    ).toBeInTheDocument();
   });
 
-  test("deve filtrar clientes por e-mail", async () => {
-    render(<Customers />);
-    await waitFor(() =>
-      expect(screen.getByText("João Silva")).toBeInTheDocument()
-    );
-
-    const searchInput = screen.getByPlaceholderText(
-      "Buscar clientes por nome ou e-mail..."
-    );
-    fireEvent.change(searchInput, {
-      target: { value: "maria.oliveira@example.com" },
+  it("should display an error message if fetching fails", () => {
+    mockedUseCustomers.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: true,
     });
-
-    expect(screen.getByText("Maria Oliveira")).toBeInTheDocument();
-    expect(screen.queryByText("João Silva")).not.toBeInTheDocument();
+    render(<Customers />, { wrapper });
+    expect(
+      screen.getByText("Falha ao carregar os clientes.")
+    ).toBeInTheDocument();
   });
 
-  test("deve abrir o modal, adicionar um novo cliente e exibi-lo na lista", async () => {
-    // Mock a chamada getCustomers para retornar a nova lista após a adição
-    (customerService.getCustomers as Mock)
-      .mockResolvedValueOnce([...mockCustomers])
-      .mockResolvedValueOnce([...mockCustomers, newCustomer]);
+  it("should display a list of customers", () => {
+    mockedUseCustomers.mockReturnValue({
+      data: mockCustomers,
+      isLoading: false,
+    });
+    render(<Customers />, { wrapper });
+    expect(screen.getByText("Alice Johnson")).toBeInTheDocument();
+    expect(screen.getByText("bob@example.com")).toBeInTheDocument();
+  });
 
-    render(<Customers />);
-    await waitFor(() =>
-      expect(screen.getByText("João Silva")).toBeInTheDocument()
-    );
+  it("should filter customers based on search term", () => {
+    mockedUseCustomers.mockReturnValue({
+      data: mockCustomers,
+      isLoading: false,
+    });
+    render(<Customers />, { wrapper });
 
-    // Abrir o modal
+    const searchInput = screen.getByPlaceholderText(/buscar clientes/i);
+    fireEvent.change(searchInput, { target: { value: "Alice" } });
+
+    expect(screen.getByText("Alice Johnson")).toBeInTheDocument();
+    expect(screen.queryByText("Bob Williams")).not.toBeInTheDocument();
+  });
+
+  it("should open the AddCustomerModal when 'Adicionar Cliente' is clicked", () => {
+    mockedUseCustomers.mockReturnValue({ data: [], isLoading: false });
+    render(<Customers />, { wrapper });
+
     const addButton = screen.getByRole("button", {
       name: /adicionar cliente/i,
     });
     fireEvent.click(addButton);
 
-    const dialog = await screen.findByRole("dialog");
-    expect(
-      within(dialog).getByRole("heading", { name: /adicionar novo cliente/i })
-    ).toBeInTheDocument();
-
-    // Preencher o formulário
-    fireEvent.change(within(dialog).getByLabelText("Nome"), {
-      target: { value: newCustomer.name },
-    });
-    fireEvent.change(within(dialog).getByLabelText("WhatsApp"), {
-      target: { value: newCustomer.whatsapp },
-    });
-    fireEvent.change(within(dialog).getByLabelText(/email/i), {
-      target: { value: newCustomer.email as string },
-    });
-
-    // Salvar
-    const saveButton = within(dialog).getByRole("button", {
-      name: /salvar cliente/i,
-    });
-    fireEvent.click(saveButton);
-
-    // Verificar se o novo cliente aparece na lista
-    await waitFor(() => {
-      expect(screen.getByText("Carlos Pereira")).toBeInTheDocument();
-    });
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("Adicionar Novo Cliente")).toBeInTheDocument();
   });
 
-  test("deve abrir o modal de detalhes do cliente e exibir as informações", async () => {
-    render(<Customers />);
-    await waitFor(() =>
-      expect(screen.getByText("João Silva")).toBeInTheDocument()
-    );
+  it("should submit the form in AddCustomerModal and call the mutation", async () => {
+    mockedUseCustomers.mockReturnValue({ data: [], isLoading: false });
+    mockMutateAsync.mockResolvedValue({}); // Simula sucesso na mutação
 
-    // Encontrar todos os botões "Ver Detalhes"
-    const detailButtons = screen.getAllByRole("button", {
-      name: /ver detalhes/i,
+    render(<Customers />, { wrapper });
+
+    // Abre o modal
+    fireEvent.click(screen.getByRole("button", { name: /adicionar cliente/i }));
+
+    // Preenche o formulário
+    fireEvent.change(screen.getByLabelText(/nome/i), {
+      target: { value: "Charlie Brown" },
     });
-    fireEvent.click(detailButtons[0]); // Clica no botão do primeiro cliente (João Silva)
+    fireEvent.change(screen.getByLabelText(/whatsapp/i), {
+      target: { value: "31999998888" },
+    });
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: "charlie@example.com" },
+    });
 
-    // Esperar o modal de detalhes aparecer
-    const dialog = await screen.findByRole("dialog");
-    expect(dialog).toBeInTheDocument();
+    // Clica em salvar
+    const saveButton = screen.getByRole("button", { name: /salvar cliente/i });
+    fireEvent.click(saveButton);
 
-    // Verificar se os detalhes mockados são exibidos
     await waitFor(() => {
-      expect(
-        within(dialog).getByText(mockCustomerDetails.totalOrders.toString())
-      ).toBeInTheDocument();
-      expect(
-        within(dialog).getByText(
-          `R$ ${mockCustomerDetails.totalSpent.toFixed(2)}`
-        )
-      ).toBeInTheDocument();
-      expect(
-        within(dialog).getByText(mockCustomerDetails.favoriteDays[0])
-      ).toBeInTheDocument();
+      expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Charlie Brown",
+          whatsapp: "31999998888",
+          email: "charlie@example.com",
+        }),
+        expect.any(Object) // Opções da mutação
+      );
     });
   });
 });

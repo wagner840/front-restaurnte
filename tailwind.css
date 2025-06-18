@@ -88,4 +88,112 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+  /* Melhorias de Acessibilidade */
+
+  /* Skip Link para navegação por teclado */
+  .skip-link {
+    @apply absolute left-0 top-0 z-50 bg-blue-600 text-white px-4 py-2 text-sm font-medium rounded-br-md;
+    transform: translateY(-100%);
+    transition: transform 0.3s;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0%);
+  }
+
+  /* Estilos de foco melhorados */
+  *:focus {
+    @apply outline-none;
+  }
+
+  /* Foco visível para elementos interativos */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    @apply outline-2 outline-offset-2 outline-blue-500;
+    outline-style: solid;
+  }
+
+  /* Foco específico para botões */
+  button:focus-visible {
+    @apply ring-2 ring-blue-500 ring-offset-2;
+  }
+
+  /* Foco para elementos da sidebar */
+  .sidebar-nav button:focus-visible {
+    @apply ring-2 ring-orange-500 ring-offset-2 ring-offset-white;
+  }
+
+  /* Foco para elementos de navegação */
+  .nav-item:focus-visible {
+    @apply ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-50;
+  }
+
+  /* Melhor contraste para texto selecionado */
+  ::selection {
+    @apply bg-blue-200 text-blue-900;
+  }
+
+  /* Indicador visual para elementos desabilitados */
+  [disabled] {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Modo de alto contraste */
+  @media (prefers-contrast: high) {
+    * {
+      border-color: currentColor !important;
+    }
+
+    button,
+    a {
+      @apply border border-current;
+    }
+  }
+
+  /* Suporte para prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Melhor indicação de foco para modais */
+  .modal-content:focus {
+    @apply outline-none;
+  }
+
+  /* Aria labels visuais para screen readers */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+    clip: rect(0, 0, 0, 0);
+  }
+}
+
+/* Classes utilitárias para acessibilidade */
+@layer components {
+  .focus-visible-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+  }
+
+  .focus-visible-ring-orange {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2;
+  }
+
+  .accessible-button {
+    @apply focus-visible-ring transition-all duration-200 active:scale-95;
+  }
+
+  .accessible-link {
+    @apply focus-visible-ring transition-colors duration-200 underline-offset-4 hover:underline;
+  }
 }

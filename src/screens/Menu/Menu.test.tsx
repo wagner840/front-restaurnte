@@ -1,215 +1,179 @@
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Menu } from "./Menu";
-import * as menuService from "../../services/menuService";
-import { supabase } from "../../lib/supabaseClient";
+import {
+  useMenuItems,
+  useCreateMenuItem,
+  useUpdateMenuItem,
+  useDeleteMenuItem,
+} from "../../hooks/useMenuItems";
 import { MenuItem } from "../../types";
-import { vi, Mock } from "vitest";
+import React from "react";
 
-// Mock para a API de serviços
-vi.mock("../../services/menuService");
+// Mock dos hooks
+jest.mock("../../hooks/useMenuItems");
+const mockedUseMenuItems = useMenuItems as jest.Mock;
+const mockedUseCreateMenuItem = useCreateMenuItem as jest.Mock;
+const mockedUseUpdateMenuItem = useUpdateMenuItem as jest.Mock;
+const mockedUseDeleteMenuItem = useDeleteMenuItem as jest.Mock;
 
-// Mock para o Supabase
-vi.mock("../../lib/supabaseClient", () => ({
-  supabase: {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn().mockReturnThis(),
-  },
+// Mock do componente filho para facilitar a interação
+jest.mock("../../components/menu/MenuItemCard", () => ({
+  MenuItemCard: ({
+    item,
+    onEdit,
+    onDelete,
+  }: {
+    item: MenuItem;
+    onEdit: (item: MenuItem) => void;
+    onDelete: (id: string) => void;
+  }) => (
+    <div data-testid={`menu-item-${item.id}`}>
+      <h4>{item.name}</h4>
+      <p>{item.category}</p>
+      <button onClick={() => onEdit(item)}>Edit</button>
+      <button onClick={() => onDelete(item.id)}>Delete</button>
+    </div>
+  ),
 }));
 
 const mockMenuItems: MenuItem[] = [
   {
     id: "1",
-    name: "Hambúrguer Clássico",
-    description: "Pão, carne e queijo",
-    price: 25.5,
-    category: "Lanches",
+    name: "Pizza Calabresa",
+    description: "Mussarela, calabresa e cebola",
+    price: 45,
+    category: "Pizzas",
     image: null,
     available: true,
+    created_at: new Date().toISOString(),
   },
   {
     id: "2",
-    name: "Batata Frita",
-    description: "Porção de batatas crocantes",
-    price: 15.0,
-    category: "Acompanhamentos",
-    image: null,
-    available: true,
-  },
-  {
-    id: "3",
-    name: "Refrigerante",
-    description: "Lata 350ml",
-    price: 8.0,
+    name: "Suco de Laranja",
+    description: "Natural, 500ml",
+    price: 8,
     category: "Bebidas",
     image: null,
     available: true,
+    created_at: new Date().toISOString(),
   },
 ];
 
-describe("Menu Screen", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    (menuService.getMenuItems as Mock).mockResolvedValue([...mockMenuItems]);
-  });
+const queryClient = new QueryClient();
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={queryClient}>
+    <MemoryRouter>{children}</MemoryRouter>
+  </QueryClientProvider>
+);
 
-  test("deve renderizar a lista de itens do cardápio", async () => {
-    render(<Menu />);
-    await waitFor(() => {
-      expect(screen.getByText("Hambúrguer Clássico")).toBeInTheDocument();
-      expect(screen.getByText("Batata Frita")).toBeInTheDocument();
-      expect(screen.getByText("Refrigerante")).toBeInTheDocument();
+describe("Menu Screen", () => {
+  const mockCreateMutate = jest.fn();
+  const mockUpdateMutate = jest.fn();
+  const mockDeleteMutate = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedUseMenuItems.mockReturnValue({
+      data: mockMenuItems,
+      isLoading: false,
+      isError: false,
+    });
+    mockedUseCreateMenuItem.mockReturnValue({
+      mutate: mockCreateMutate,
+      isPending: false,
+    });
+    mockedUseUpdateMenuItem.mockReturnValue({
+      mutate: mockUpdateMutate,
+      isPending: false,
+    });
+    mockedUseDeleteMenuItem.mockReturnValue({
+      mutate: mockDeleteMutate,
+      isPending: false,
     });
   });
 
-  test("deve filtrar itens por termo de busca", async () => {
-    render(<Menu />);
-    await waitFor(() =>
-      expect(screen.getByText("Hambúrguer Clássico")).toBeInTheDocument()
-    );
-    const searchInput = screen.getByPlaceholderText("Buscar itens...");
-    fireEvent.change(searchInput, { target: { value: "Hambúrguer" } });
-    expect(screen.getByText("Hambúrguer Clássico")).toBeInTheDocument();
-    expect(screen.queryByText("Batata Frita")).not.toBeInTheDocument();
+  it("should display menu items", () => {
+    render(<Menu />, { wrapper });
+    expect(screen.getByText("Pizza Calabresa")).toBeInTheDocument();
+    expect(screen.getByText("Suco de Laranja")).toBeInTheDocument();
   });
 
-  test("deve filtrar itens por categoria", async () => {
-    render(<Menu />);
-    await waitFor(() =>
-      expect(screen.getByText("Hambúrguer Clássico")).toBeInTheDocument()
-    );
+  it("should filter items by search term", () => {
+    render(<Menu />, { wrapper });
+    const searchInput = screen.getByPlaceholderText(/buscar itens/i);
+    fireEvent.change(searchInput, { target: { value: "Pizza" } });
+    expect(screen.getByText("Pizza Calabresa")).toBeInTheDocument();
+    expect(screen.queryByText("Suco de Laranja")).not.toBeInTheDocument();
+  });
+
+  it("should filter items by category", () => {
+    render(<Menu />, { wrapper });
     const categorySelect = screen.getByRole("combobox");
     fireEvent.change(categorySelect, { target: { value: "Bebidas" } });
-    expect(screen.getByText("Refrigerante")).toBeInTheDocument();
-    expect(screen.queryByText("Hambúrguer Clássico")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pizza Calabresa")).not.toBeInTheDocument();
+    expect(screen.getByText("Suco de Laranja")).toBeInTheDocument();
   });
 
-  test("deve abrir o modal para adicionar um novo item", async () => {
-    render(<Menu />);
-    await waitFor(() =>
-      expect(screen.getByText("Hambúrguer Clássico")).toBeInTheDocument()
-    );
-    const addButton = screen.getByText("Adicionar Item");
-    fireEvent.click(addButton);
-    const dialog = await screen.findByRole("dialog");
-    expect(dialog).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: /adicionar item/i })
-    ).toBeInTheDocument();
-  });
-
-  test("deve criar um novo item do cardápio", async () => {
-    const newItem: MenuItem = {
-      id: "4",
-      name: "Pizza de Calabresa",
-      description: "Molho, queijo e calabresa",
-      price: 45.0,
-      category: "Pizzas",
-      image: null,
-      available: true,
-    };
-
-    const fromMock = supabase.from as Mock;
-    fromMock.mockImplementation(() => ({
-      insert: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: newItem, error: null }),
-    }));
-
-    render(<Menu />);
-    await waitFor(() =>
-      expect(screen.getByText("Hambúrguer Clássico")).toBeInTheDocument()
-    );
-
+  it("should open modal to add a new item", async () => {
+    render(<Menu />, { wrapper });
     fireEvent.click(screen.getByRole("button", { name: /adicionar item/i }));
 
-    const dialog = await screen.findByRole("dialog");
-
-    fireEvent.change(within(dialog).getByLabelText("Nome"), {
-      target: { value: newItem.name },
-    });
-    fireEvent.change(within(dialog).getByLabelText("Descrição"), {
-      target: { value: newItem.description },
-    });
-    fireEvent.change(within(dialog).getByLabelText("Preço"), {
-      target: { value: newItem.price.toString() },
-    });
-    fireEvent.change(within(dialog).getByLabelText("Categoria"), {
-      target: { value: newItem.category },
-    });
-
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: "Adicionar Item" })
-    );
-
     await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(screen.getByText("Pizza de Calabresa")).toBeInTheDocument();
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
+
+    fireEvent.change(screen.getByPlaceholderText("Nome do item"), {
+      target: { value: "Nova Torta" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("0.00"), {
+      target: { value: "25" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Categoria do item"), {
+      target: { value: "Sobremesas" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar Item" }));
+
+    expect(mockCreateMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "Nova Torta",
+        price: 25,
+        category: "Sobremesas",
+      }),
+      expect.any(Object)
+    );
   });
 
-  test("deve editar um item do cardápio existente", async () => {
-    const updatedItem: MenuItem = { ...mockMenuItems[0], price: 28.0 };
-
-    const fromMock = supabase.from as Mock;
-    fromMock.mockImplementation(() => ({
-      update: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: updatedItem, error: null }),
-    }));
-
-    render(<Menu />);
-    await waitFor(() =>
-      expect(screen.getByText("Hambúrguer Clássico")).toBeInTheDocument()
-    );
-
-    const editButtons = await screen.findAllByRole("button", {
-      name: /editar item/i,
-    });
-    fireEvent.click(editButtons[0]);
-
-    const dialog = await screen.findByRole("dialog");
-
-    expect(dialog).toBeInTheDocument();
-    expect(
-      within(dialog).getByRole("heading", { name: /editar item/i })
-    ).toBeInTheDocument();
-
-    const priceInput = within(dialog).getByLabelText("Preço");
-    fireEvent.change(priceInput, { target: { value: "28.0" } });
-
-    fireEvent.click(within(dialog).getByText("Salvar Alterações"));
+  it("should open modal to edit an item", async () => {
+    render(<Menu />, { wrapper });
+    const editButton = screen.getAllByRole("button", { name: "Edit" })[0];
+    fireEvent.click(editButton);
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(screen.getByText("R$ 28.00")).toBeInTheDocument();
-      expect(screen.queryByText("R$ 25.50")).not.toBeInTheDocument();
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Pizza Calabresa")).toBeInTheDocument();
     });
+
+    fireEvent.change(screen.getByPlaceholderText("Nome do item"), {
+      target: { value: "Pizza Calabresa Especial" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar Alterações" }));
+
+    expect(mockUpdateMutate).toHaveBeenCalledWith(
+      {
+        id: "1",
+        updates: expect.objectContaining({ name: "Pizza Calabresa Especial" }),
+      },
+      expect.any(Object)
+    );
   });
 
-  test("deve deletar um item do cardápio (da UI)", async () => {
-    render(<Menu />);
-    await waitFor(() =>
-      expect(screen.getByText("Hambúrguer Clássico")).toBeInTheDocument()
-    );
-
-    const deleteButtons = await screen.findAllByRole("button", {
-      name: /deletar item/i,
-    });
-    fireEvent.click(deleteButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.queryByText("Hambúrguer Clássico")).not.toBeInTheDocument();
-    });
+  it("should call delete mutation when delete is clicked", () => {
+    render(<Menu />, { wrapper });
+    const deleteButton = screen.getAllByRole("button", { name: "Delete" })[0];
+    fireEvent.click(deleteButton);
+    expect(mockDeleteMutate).toHaveBeenCalledWith("1");
   });
 });

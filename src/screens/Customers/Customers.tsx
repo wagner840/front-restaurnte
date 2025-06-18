@@ -1,149 +1,73 @@
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  getCustomers,
-  getCustomerDetails,
-} from "../../services/customerService";
-import { Customer, CustomerDetails } from "../../types";
+import React, { useState, useMemo, useEffect } from "react";
+import { useCustomers, useCustomerDetails } from "../../hooks/useCustomers";
+import { Customer } from "../../types";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Loader2, Mail, Phone } from "lucide-react";
 import { CustomerDetailModal } from "../../components/customers/CustomerDetailModal";
 import AddCustomerModal from "../../components/customers/AddCustomerModal";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
 
 export const Customers: React.FC = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
     null
   );
-  const [customerDetails, setCustomerDetails] =
-    useState<CustomerDetails | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-
-  const fetchCustomers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await getCustomers();
-      // @ts-ignore
-      setCustomers(data);
-      setError(null);
-    } catch (err) {
-      setError("Falha ao carregar os clientes. Tente novamente mais tarde.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
 
   useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  const handleCardClick = async (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setIsModalOpen(true);
-    setDetailsLoading(true);
-    try {
-      const details = await getCustomerDetails(customer.customer_id);
-      setCustomerDetails(details);
-    } catch (error) {
-      console.error("Failed to fetch customer details", error);
-      setCustomerDetails(null);
-    } finally {
-      setDetailsLoading(false);
-    }
-  };
+  const {
+    data: customers = [],
+    isLoading: isLoadingCustomers,
+    isError,
+  } = useCustomers();
 
-  const handleCustomerUpdate = (updatedCustomer: Customer) => {
-    setCustomers((prevCustomers) =>
-      prevCustomers.map((c) =>
-        c.customer_id === updatedCustomer.customer_id ? updatedCustomer : c
-      )
-    );
-    setSelectedCustomer(updatedCustomer);
-  };
+  const { data: customerDetails, isLoading: isLoadingDetails } =
+    useCustomerDetails(selectedCustomerId);
 
-  const handleCustomerAdded = () => {
-    setIsAddModalOpen(false);
-    fetchCustomers();
-  };
+  const selectedCustomer = useMemo(() => {
+    if (!selectedCustomerId) return null;
+    return customers.find((c) => c.customer_id === selectedCustomerId) || null;
+  }, [customers, selectedCustomerId]);
 
-  const filteredCustomers = customers.filter(
-    (customer) =>
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (customer.email &&
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredCustomers = useMemo(
+    () =>
+      customers.filter(
+        (customer) =>
+          customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (customer.email &&
+            customer.email.toLowerCase().includes(searchTerm.toLowerCase()))
+      ),
+    [customers, searchTerm]
   );
 
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <div className="text-center py-12">
-          <p className="text-[#607589] text-lg">Carregando clientes...</p>
-        </div>
-      );
-    }
+  const handleRowClick = (customer: Customer) => {
+    setSelectedCustomerId(customer.customer_id);
+  };
 
-    if (error) {
-      return (
-        <div className="text-center py-12 text-red-600">
-          <p>{error}</p>
-        </div>
-      );
-    }
-
-    if (filteredCustomers.length === 0) {
-      return (
-        <div className="text-center py-12">
-          <p className="text-[#607589] text-lg">Nenhum cliente encontrado</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
-        {filteredCustomers.map((customer) => (
-          <Card
-            key={customer.customer_id}
-            className="flex flex-col justify-between hover:shadow-lg transition-shadow duration-200"
-          >
-            <CardHeader>
-              <CardTitle className="text-lg text-[#111416]">
-                {customer.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-sm text-[#607589]">
-                <strong>Email:</strong> {customer.email || "N/A"}
-              </p>
-              <p className="text-sm text-[#607589]">
-                <strong>WhatsApp:</strong> {customer.whatsapp || "N/A"}
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button
-                onClick={() => handleCardClick(customer)}
-                className="w-full bg-[#0c7ff2] hover:bg-[#0c7ff2]/90"
-              >
-                Ver Detalhes
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    );
+  const handleCloseDetailModal = () => {
+    setSelectedCustomerId(null);
   };
 
   return (
@@ -151,49 +75,121 @@ export const Customers: React.FC = () => {
       <div className="p-4 sm:p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#111416]">Clientes</h1>
-            <p className="text-[#607589] text-sm sm:text-base">
+            <h1 className="text-2xl font-bold">Clientes</h1>
+            <p className="text-muted-foreground">
               Gerencie seus clientes e histórico de pedidos
             </p>
           </div>
-          <Button
-            onClick={() => setIsAddModalOpen(true)}
-            className="bg-[#0c7ff2] hover:bg-[#0c7ff2]/90 w-full sm:w-auto"
-          >
+          <Button onClick={() => setIsAddModalOpen(true)}>
             <Plus size={20} className="mr-2" />
             Adicionar Cliente
           </Button>
         </div>
 
-        <div className="relative flex-1">
+        <div className="relative w-full">
           <Search
             size={20}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#607589]"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
           />
           <Input
             placeholder="Buscar clientes por nome ou e-mail..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-12 bg-[#eff2f4]"
+            className="pl-10 w-full"
           />
         </div>
 
-        <div className="bg-white rounded-lg border border-[#e5e8ea] overflow-hidden">
-          {renderContent()}
-        </div>
+        {isLoadingCustomers ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : isError ? (
+          <div className="text-center py-12 text-destructive">
+            <p>Falha ao carregar os clientes.</p>
+          </div>
+        ) : isMobile ? (
+          <div className="space-y-4">
+            {filteredCustomers.length > 0 ? (
+              filteredCustomers.map((customer) => (
+                <Card
+                  key={customer.customer_id}
+                  onClick={() => handleRowClick(customer)}
+                  className="cursor-pointer"
+                >
+                  <CardHeader>
+                    <CardTitle>{customer.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{customer.whatsapp}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span>{customer.email || "N/A"}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>Nenhum cliente encontrado.</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Lista de Clientes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>WhatsApp</TableHead>
+                    <TableHead>Email</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCustomers.length > 0 ? (
+                    filteredCustomers.map((customer) => (
+                      <TableRow
+                        key={customer.customer_id}
+                        onClick={() => handleRowClick(customer)}
+                        className="cursor-pointer"
+                      >
+                        <TableCell className="font-medium">
+                          {customer.name}
+                        </TableCell>
+                        <TableCell>{customer.whatsapp}</TableCell>
+                        <TableCell>{customer.email}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center">
+                        Nenhum cliente encontrado.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
       <CustomerDetailModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={!!selectedCustomerId}
+        onClose={handleCloseDetailModal}
         customer={selectedCustomer}
-        details={customerDetails}
-        isLoading={detailsLoading}
-        onCustomerUpdate={handleCustomerUpdate}
+        details={customerDetails || null}
+        isLoading={isLoadingDetails}
       />
       <AddCustomerModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onCustomerAdded={handleCustomerAdded}
+        onCustomerAdded={() => setIsAddModalOpen(false)}
       />
     </>
   );

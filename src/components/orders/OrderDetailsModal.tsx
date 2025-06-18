@@ -1,0 +1,162 @@
+import React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "../ui/dialog";
+import { Order, OrderStatus } from "../../types";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import {
+  User,
+  MapPin,
+  AlertCircle,
+  CheckCircle2,
+  Package,
+  PackageCheck,
+  Truck,
+  XCircle,
+} from "lucide-react";
+import { formatCurrency, formatDate } from "../../lib/utils";
+
+interface OrderDetailsModalProps {
+  order: Order | null;
+  isOpen: boolean;
+  menuItemsMap: Record<string, string>;
+  onClose: () => void;
+  onUpdateStatus: (orderId: string, status: OrderStatus) => void;
+}
+
+const getStatusInfo = (status: OrderStatus) => {
+  switch (status) {
+    case "pending":
+      return { text: "Pendente", variant: "warning", icon: AlertCircle };
+    case "confirmed":
+      return { text: "Confirmado", variant: "info", icon: Package };
+    case "preparing":
+      return { text: "Preparando", variant: "info", icon: Package };
+    case "out_for_delivery":
+      return { text: "Em Entrega", variant: "info", icon: Truck };
+    case "delivered":
+      return { text: "Entregue", variant: "success", icon: PackageCheck };
+    case "completed":
+      return { text: "Concluído", variant: "success", icon: CheckCircle2 };
+    case "cancelled":
+      return { text: "Cancelado", variant: "destructive", icon: XCircle };
+    default:
+      return { text: "Desconhecido", variant: "secondary", icon: AlertCircle };
+  }
+};
+
+export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
+  order,
+  isOpen,
+  menuItemsMap,
+  onClose,
+  onUpdateStatus,
+}) => {
+  if (!order) return null;
+
+  const statusInfo = getStatusInfo(order.status);
+  const StatusIcon = statusInfo.icon;
+
+  const nextStatusMap: Partial<Record<OrderStatus, OrderStatus>> = {
+    pending: "confirmed",
+    confirmed: "preparing",
+    preparing:
+      order.order_type === "delivery" ? "out_for_delivery" : "completed",
+    out_for_delivery: "delivered",
+    delivered: "completed",
+  };
+
+  const canUpdateStatus =
+    order.status !== "completed" && order.status !== "cancelled";
+  const nextOrderStatus = nextStatusMap[order.status];
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <StatusIcon className="h-5 w-5" />
+            Pedido #{order.order_id.substring(0, 8)}
+          </DialogTitle>
+          <DialogDescription>
+            Detalhes do pedido e informações do cliente.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-6 py-4">
+          <div className="flex items-center gap-2">
+            <Badge variant={statusInfo.variant as any}>{statusInfo.text}</Badge>
+            <span className="text-sm text-muted-foreground">
+              {formatDate(order.created_at)}
+            </span>
+          </div>
+
+          <div className="grid gap-2">
+            <h3 className="font-semibold">Informações do Cliente</h3>
+            <div className="grid gap-2 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span>{order.customerName || "Cliente não identificado"}</span>
+              </div>
+            </div>
+          </div>
+
+          {order.order_type === "delivery" && (
+            <div className="space-y-2">
+              <h4 className="font-medium">Endereço de Entrega</h4>
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <span className="text-sm">
+                  {order.delivery_address_id || "Não informado"}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-2">
+            <h3 className="font-semibold">Itens do Pedido</h3>
+            <div className="grid gap-2">
+              {order.order_items.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between py-2 text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{item.quantity}x</span>
+                    <span>{item.name}</span>
+                  </div>
+                  <span className="text-muted-foreground">
+                    {formatCurrency(item.price * item.quantity)}
+                  </span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between border-t pt-2 font-semibold">
+                <span>Total</span>
+                <span>{formatCurrency(order.total_amount)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+          {canUpdateStatus && nextOrderStatus && (
+            <Button
+              onClick={() => onUpdateStatus(order.order_id, nextOrderStatus!)}
+            >
+              Avançar para: {getStatusInfo(nextOrderStatus).text}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};

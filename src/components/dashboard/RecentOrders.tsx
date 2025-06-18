@@ -1,144 +1,144 @@
 import React from "react";
-import { Order } from "../../types";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
-  Clock,
-  CheckCircle,
+  ChevronRight,
   AlertCircle,
-  User,
-  Hash,
-  Truck,
   Check,
+  Clock,
+  Truck,
+  CheckCircle,
 } from "lucide-react";
+import { OrderStatus } from "../../types";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { ScrollArea } from "../ui/scroll-area";
+import { Skeleton } from "../ui/skeleton";
 
 interface RecentOrdersProps {
-  orders: Order[];
+  orders: Array<{
+    order_id: string;
+    customer_name: string;
+    total_amount: number;
+    status: OrderStatus;
+    created_at: string;
+  }>;
   onViewAllClick: () => void;
+  isLoading?: boolean;
 }
 
-const getStatusInfo = (status: Order["status"]) => {
-  switch (status) {
-    case "pending":
-      return {
-        icon: <AlertCircle size={16} className="text-amber-500" />,
-        text: "Pendente",
-        color: "bg-amber-100 text-amber-800 border-amber-200",
-      };
-    case "confirmed":
-      return {
-        icon: <Check size={16} className="text-blue-500" />,
-        text: "Confirmado",
-        color: "bg-blue-100 text-blue-800 border-blue-200",
-      };
-    case "preparing":
-      return {
-        icon: <Clock size={16} className="text-indigo-500" />,
-        text: "Preparando",
-        color: "bg-indigo-100 text-indigo-800 border-indigo-200",
-      };
-    case "out_for_delivery":
-      return {
-        icon: <Truck size={16} className="text-cyan-500" />,
-        text: "Em Entrega",
-        color: "bg-cyan-100 text-cyan-800 border-cyan-200",
-      };
-    case "delivered":
-      return {
-        icon: <CheckCircle size={16} className="text-green-500" />,
-        text: "Entregue",
-        color: "bg-green-100 text-green-800 border-green-200",
-      };
-    case "completed":
-      return {
-        icon: <CheckCircle size={16} className="text-gray-500" />,
-        text: "Concluído",
-        color: "bg-gray-100 text-gray-800 border-gray-200",
-      };
-    case "cancelled":
-      return {
-        icon: <AlertCircle size={16} className="text-red-500" />,
-        text: "Cancelado",
-        color: "bg-red-100 text-red-800 border-red-200",
-      };
-    default:
-      return {
-        icon: <AlertCircle size={16} className="text-gray-500" />,
-        text: "Desconhecido",
-        color: "bg-gray-100 text-gray-800 border-gray-200",
-      };
-  }
-};
+const statusConfig = {
+  pending: {
+    label: "Pendente",
+    icon: Clock,
+    variant: "outline",
+  },
+  preparing: {
+    label: "Preparando",
+    icon: AlertCircle,
+    variant: "default",
+  },
+  out_for_delivery: {
+    label: "Entregando",
+    icon: Truck,
+    variant: "default",
+  },
+  delivered: {
+    label: "Entregue",
+    icon: Check,
+    variant: "secondary",
+  },
+  confirmed: {
+    label: "Confirmado",
+    icon: CheckCircle,
+    variant: "secondary",
+  },
+  cancelled: {
+    label: "Cancelado",
+    icon: AlertCircle,
+    variant: "destructive",
+  },
+  completed: {
+    label: "Concluído",
+    icon: CheckCircle,
+    variant: "secondary",
+  },
+} as const;
 
 export const RecentOrders: React.FC<RecentOrdersProps> = ({
   orders,
   onViewAllClick,
+  isLoading = false,
 }) => {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Pedidos Recentes</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+              <Skeleton className="h-6 w-16" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base md:text-lg font-semibold text-gray-900">
-          Pedidos Recentes
-        </h3>
-        <button
-          onClick={onViewAllClick}
-          className="text-sm text-orange-600 hover:text-orange-700 font-medium"
-        >
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Pedidos Recentes</CardTitle>
+        <Button variant="ghost" size="sm" onClick={onViewAllClick}>
           Ver todos
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        {orders.length > 0 ? (
-          orders.map((order) => {
-            const statusInfo = getStatusInfo(order.status);
-            return (
-              <div
-                key={order.order_id}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                {/* Mobile and Desktop: Main Info */}
-                <div className="flex items-center gap-3 mb-2 sm:mb-0">
-                  <div className="hidden sm:flex items-center gap-2">
-                    <Hash size={14} className="text-gray-400" />
-                    <span className="font-mono text-xs text-gray-600">
-                      {order.order_id.substring(0, 6)}
-                    </span>
+          <ChevronRight className="ml-1 h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-[400px]">
+          <div className="space-y-4">
+            {orders.map((order) => {
+              const status = statusConfig[order.status];
+              return (
+                <div
+                  key={order.order_id}
+                  className="flex items-center justify-between"
+                >
+                  <div className="space-y-1">
+                    <p className="font-medium">{order.customer_name}</p>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <status.icon className="mr-1 h-4 w-4" />
+                      <Badge variant={status.variant as any}>
+                        {status.label}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <User size={16} className="text-gray-500" />
-                    <span className="text-sm font-medium text-gray-800 truncate">
-                      {order.customer?.name || "N/A"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Mobile and Desktop: Status and Amount */}
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}
-                  >
-                    {statusInfo.text}
-                  </span>
-                  <div className="text-right ml-4">
-                    <p className="text-sm font-bold text-gray-900">
-                      R$ {order.total_amount.toFixed(2)}
+                  <div className="text-right">
+                    <p className="text-sm font-medium">
+                      {new Intl.NumberFormat("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      }).format(order.total_amount)}
                     </p>
-                    <p className="text-xs text-gray-500 sm:hidden">
-                      {new Date(order.created_at).toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(order.created_at), "PPp", {
+                        locale: ptBR,
                       })}
                     </p>
                   </div>
                 </div>
-              </div>
-            );
-          })
-        ) : (
-          <p className="text-sm text-gray-500 text-center py-4">
-            Nenhum pedido recente para mostrar.
-          </p>
-        )}
-      </div>
-    </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 };

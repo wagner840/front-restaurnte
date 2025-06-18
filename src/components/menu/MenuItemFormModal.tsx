@@ -1,31 +1,34 @@
 import React, { useState, useEffect, MouseEvent } from "react";
 import { MenuItem } from "../../types";
+import { useCreateMenuItem, useUpdateMenuItem } from "../../hooks/useMenuItems";
 
 interface MenuItemFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (item: Omit<MenuItem, "id" | "available">) => void;
   item?: MenuItem | null;
 }
 
 const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
   isOpen,
   onClose,
-  onSubmit,
   item,
 }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | "">("");
   const [category, setCategory] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const createMenuItemMutation = useCreateMenuItem();
+  const updateMenuItemMutation = useUpdateMenuItem();
 
   const isEditMode = item != null;
+  const isSaving =
+    createMenuItemMutation.isPending || updateMenuItemMutation.isPending;
 
   useEffect(() => {
     if (isOpen) {
-      if (isEditMode) {
+      if (isEditMode && item) {
         setName(item.name);
         setDescription(item.description);
         setPrice(item.price);
@@ -36,30 +39,41 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
         setPrice("");
         setCategory("");
       }
-      setError(null);
+      setFormError(null);
     }
   }, [isOpen, item, isEditMode]);
 
   const handleSave = async () => {
     if (!name || price === "" || !category) {
-      setError("Nome, Preço e Categoria são obrigatórios.");
+      setFormError("Nome, Preço e Categoria são obrigatórios.");
       return;
     }
-    setIsLoading(true);
-    setError(null);
-    try {
-      await onSubmit({
-        name,
-        description,
-        price: Number(price),
-        category,
-      });
-      onClose();
-    } catch (err) {
-      setError("Falha ao salvar o item. Tente novamente.");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+    setFormError(null);
+
+    const menuItemData = {
+      name,
+      description,
+      price: Number(price),
+      category,
+      available: item?.available ?? true,
+    };
+
+    const mutationOptions = {
+      onSuccess: () => {
+        onClose();
+      },
+      onError: (error: Error) => {
+        setFormError(error.message || "Ocorreu uma falha. Tente novamente.");
+      },
+    };
+
+    if (isEditMode && item) {
+      updateMenuItemMutation.mutate(
+        { id: item.id, updates: menuItemData },
+        mutationOptions
+      );
+    } else {
+      createMenuItemMutation.mutate(menuItemData, mutationOptions);
     }
   };
 
@@ -106,8 +120,14 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
         <h2 className="text-2xl font-bold mb-6 text-center">
           {isEditMode ? "Editar Item" : "Adicionar Item"}
         </h2>
-        {error && (
-          <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
+        {(formError ||
+          createMenuItemMutation.isError ||
+          updateMenuItemMutation.isError) && (
+          <p className="text-red-500 text-sm mb-4 text-center">
+            {formError ||
+              createMenuItemMutation.error?.message ||
+              updateMenuItemMutation.error?.message}
+          </p>
         )}
 
         <div className="space-y-4">
@@ -185,9 +205,9 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
           <button
             onClick={handleSave}
             className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-            disabled={isLoading}
+            disabled={isSaving}
           >
-            {isLoading
+            {isSaving
               ? "Salvando..."
               : isEditMode
               ? "Salvar Alterações"

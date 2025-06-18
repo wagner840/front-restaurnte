@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { authService } from "../services/authService";
 import { Session, User } from "@supabase/supabase-js";
 
 export const useAuth = () => {
@@ -9,40 +9,53 @@ export const useAuth = () => {
 
   useEffect(() => {
     const getSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
+      try {
+        const session = await authService.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Erro ao obter sessão:", error);
+        setSession(null);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     getSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-      }
-    );
+    const authListener = authService.onAuthStateChange((_event, session) => {
+      console.log("Auth state changed:", session);
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
 
     return () => {
-      authListener.subscription.unsubscribe();
+      authListener.unsubscribe();
     };
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    return data;
+    try {
+      const data = await authService.signIn({ email, password });
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+      return data;
+    } catch (error) {
+      console.error("Erro ao fazer login:", error);
+      throw error;
+    }
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      await authService.signOut();
+      setSession(null);
+      setUser(null);
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      throw error;
+    }
   };
 
   return {
@@ -51,6 +64,6 @@ export const useAuth = () => {
     isLoading,
     login,
     logout,
-    isAuthenticated: !!session,
+    isAuthenticated: !!session?.access_token,
   };
 };

@@ -1,54 +1,27 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { MenuItemCard } from "../../components/menu/MenuItemCard";
 import MenuItemFormModal from "../../components/menu/MenuItemFormModal";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Plus, Search } from "lucide-react";
-import {
-  getMenuItems,
-  addMenuItem,
-  updateMenuItem,
-  deleteMenuItem,
-} from "../../services/menuService";
 import { MenuItem } from "../../types";
+import { useMenuItems, useDeleteMenuItem } from "../../hooks/useMenuItems";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const Menu: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: items = [], isLoading, isError } = useMenuItems();
+  const deleteMenuItemMutation = useDeleteMenuItem();
 
-  // Estados para o modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
-  useEffect(() => {
-    const fetchMenu = async () => {
-      try {
-        setLoading(true);
-        const menuItems = await getMenuItems();
-        setItems(menuItems);
+  const categories = useMemo(() => {
+    if (!items) return [];
+    return [...new Set(items.map((item: MenuItem) => item.category))];
+  }, [items]);
 
-        const uniqueCategories = [
-          ...new Set(menuItems.map((item) => item.category)),
-        ];
-        setCategories(uniqueCategories);
-
-        setError(null);
-      } catch (err) {
-        setError("Falha ao carregar o cardápio. Tente novamente mais tarde.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMenu();
-  }, []);
-
-  // Funções para controlar o modal
   const handleOpenModalForAdd = () => {
     setEditingItem(null);
     setIsModalOpen(true);
@@ -59,70 +32,38 @@ export const Menu: React.FC = () => {
     setEditingItem(null);
   };
 
-  const handleSubmit = async (
-    itemData: Omit<MenuItem, "id" | "image" | "available" | "created_at">
-  ) => {
-    try {
-      if (editingItem) {
-        const updatedItem = await updateMenuItem(editingItem.id, itemData);
-        if (updatedItem) {
-          setItems((prevItems) =>
-            prevItems.map((item) =>
-              item.id === updatedItem.id ? updatedItem : item
-            )
-          );
-        }
-      } else {
-        const newItem = await addMenuItem({ ...itemData, available: true });
-        if (newItem) {
-          setItems((prevItems) => [...prevItems, newItem]);
-        }
-      }
-      handleCloseModal();
-    } catch (error) {
-      console.error("Erro ao salvar o item do cardápio:", error);
-      setError("Falha ao salvar o item. Tente novamente.");
-    }
-  };
-
-  const filteredItems = items.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.description &&
-        item.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory =
-      selectedCategory === "all" || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredItems = useMemo(() => {
+    if (!items) return [];
+    return items.filter((item: MenuItem) => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.description &&
+          item.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesCategory =
+        selectedCategory === "all" || item.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [items, searchTerm, selectedCategory]);
 
   const handleEdit = (item: MenuItem) => {
     setEditingItem(item);
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteMenuItem(id);
-      setItems(items.filter((item) => item.id !== id));
-    } catch (error) {
-      console.error("Erro ao deletar o item do cardápio:", error);
-      setError("Falha ao deletar o item. Tente novamente.");
-    }
+  const handleDelete = (id: string) => {
+    deleteMenuItemMutation.mutate(id);
   };
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#111416]">Cardápio</h1>
-          <p className="text-[#607589] text-sm sm:text-base">
+          <h1 className="text-2xl font-bold text-foreground">Cardápio</h1>
+          <p className="text-muted-foreground">
             Gerencie os itens do seu cardápio
           </p>
         </div>
-        <Button
-          onClick={handleOpenModalForAdd}
-          className="bg-[#0c7ff2] hover:bg-[#0c7ff2]/90 w-full sm:w-auto"
-        >
+        <Button onClick={handleOpenModalForAdd}>
           <Plus size={20} className="mr-2" />
           Adicionar Item
         </Button>
@@ -132,19 +73,19 @@ export const Menu: React.FC = () => {
         <div className="relative flex-1">
           <Search
             size={20}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#607589]"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
           />
           <Input
             placeholder="Buscar itens..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-12 bg-[#eff2f4] w-full"
+            className="pl-10"
           />
         </div>
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="px-4 h-12 rounded-lg border border-[#e5e8ea] bg-white text-[#111416] focus:outline-none focus:ring-2 focus:ring-[#0c7ff2] w-full md:w-auto md:min-w-[200px]"
+          className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto md:min-w-[200px]"
         >
           <option value="all">Todas as categorias</option>
           {categories.map((category) => (
@@ -155,19 +96,23 @@ export const Menu: React.FC = () => {
         </select>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12">
-          <p className="text-[#607589] text-lg">Carregando cardápio...</p>
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Skeleton key={index} className="h-64 w-full" />
+          ))}
         </div>
-      ) : error ? (
-        <div className="text-center py-12 text-red-600 bg-red-50 p-4 rounded-lg">
+      ) : isError ? (
+        <div className="text-center py-12 text-destructive bg-destructive/10 p-4 rounded-lg">
           <p className="font-semibold">Ocorreu um erro</p>
-          <p>{error}</p>
+          <p>Falha ao carregar o cardápio. Tente novamente mais tarde.</p>
         </div>
       ) : filteredItems.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-[#607589] text-lg">Nenhum item encontrado.</p>
-          <p className="text-sm text-[#607589]">
+          <p className="text-lg text-muted-foreground">
+            Nenhum item encontrado.
+          </p>
+          <p className="text-sm text-muted-foreground">
             Tente ajustar sua busca ou filtros.
           </p>
         </div>
@@ -187,7 +132,6 @@ export const Menu: React.FC = () => {
       <MenuItemFormModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onSubmit={handleSubmit}
         item={editingItem}
       />
     </div>

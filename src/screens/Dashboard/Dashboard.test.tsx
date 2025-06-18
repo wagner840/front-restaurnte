@@ -1,123 +1,137 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { Dashboard } from "./Dashboard";
-import { Order, DashboardStats } from "../../types";
-import { SalesByCategoryData } from "../../components/dashboard/SalesByCategoryChart";
-import * as dashboardService from "../../services/dashboardService";
-import * as orderService from "../../services/orderService";
+import { useDashboardData } from "../../hooks/useDashboardData";
+import { DashboardStats } from "../../types";
+import React from "react";
 
-// Mock dos novos módulos de serviço
-vi.mock("../../services/dashboardService");
-vi.mock("../../services/orderService");
+// Mock do hook useDashboardData
+jest.mock("../../hooks/useDashboardData");
+const mockedUseDashboardData = useDashboardData as jest.Mock;
 
-const mockStats: DashboardStats = {
-  totalOrders: 10,
-  revenue: 1500.5,
-  activeOrders: 3,
-  completedOrders: 7,
+// Mock dos componentes filhos para focar no teste do Dashboard
+jest.mock("../../components/dashboard/StatsCard", () => ({
+  StatsCard: ({ title, value }: { title: string; value: string | number }) => (
+    <div data-testid="stats-card">
+      <h3>{title}</h3>
+      <p>{value}</p>
+    </div>
+  ),
+}));
+
+jest.mock("../../components/dashboard/SalesByCategoryChart", () => ({
+  SalesByCategoryChart: ({ isLoading }: { isLoading: boolean }) => (
+    <div data-testid="sales-chart">
+      {isLoading ? "Loading Chart..." : "Chart Data"}
+    </div>
+  ),
+}));
+
+jest.mock("../../components/dashboard/RecentOrders", () => ({
+  RecentOrders: ({ isLoading }: { isLoading: boolean }) => (
+    <div data-testid="recent-orders">
+      {isLoading ? "Loading Orders..." : "Orders List"}
+    </div>
+  ),
+}));
+
+const mockDashboardData: DashboardStats = {
+  totalSales: 12500.5,
+  totalOrders: 342,
+  averageTicket: 36.55,
+  activeCustomers: 150,
+  salesTrend: 12.5,
+  salesByCategory: [{ category: "Pizzas", amount: 8000, quantity: 150 }],
+  recentOrders: [
+    {
+      order_id: "1",
+      customer_name: "John Doe",
+      total_amount: 50,
+      status: "completed",
+      created_at: new Date().toISOString(),
+    },
+  ],
 };
 
-const mockOrders: Order[] = [
-  {
-    order_id: "1",
-    customer: { name: "João Silva" },
-    total_amount: 150.0,
-    status: "completed",
-    created_at: new Date().toISOString(),
-    order_items: [
-      { item_name: "Hambúrguer", quantity: 2, price: 25.0, name: "Hambúrguer" },
-    ],
-    order_type: "delivery",
-    address: { street: "Rua A", number: "123", city: "Cidade" },
-  },
-  {
-    order_id: "2",
-    customer: { name: "Maria Oliveira" },
-    total_amount: 80.0,
-    status: "pending",
-    created_at: new Date().toISOString(),
-    order_items: [
-      { item_name: "Pizza", quantity: 1, price: 40.0, name: "Pizza" },
-    ],
-    order_type: "pickup",
-    address: null,
-  },
-];
+const renderDashboard = () => {
+  return render(
+    <MemoryRouter>
+      <Dashboard />
+    </MemoryRouter>
+  );
+};
 
-const mockSalesByCategory: SalesByCategoryData[] = [
-  { category: "Lanches", amount: 1200 },
-  { category: "Bebidas", amount: 300.5 },
-];
+describe("Dashboard Screen", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
-describe("Dashboard", () => {
-  beforeEach(() => {
-    // Resetar mocks antes de cada teste
-    vi.resetAllMocks();
+  it("should display skeletons while loading", () => {
+    mockedUseDashboardData.mockReturnValue({
+      data: null,
+      isLoading: true,
+      error: null,
+    });
 
-    // Configurar o retorno mockado para cada função da API
-    vi.spyOn(dashboardService, "getDashboardStats").mockResolvedValue(
-      mockStats
+    renderDashboard();
+
+    // Verifica se os skeletons dos cards de estatísticas estão presentes
+    const statSkeletons = screen.getAllByRole("generic", { name: "" });
+    expect(
+      statSkeletons.filter((s) => s.classList.contains("h-32")).length
+    ).toBe(4);
+
+    // Verifica se os componentes de gráfico e pedidos recentes mostram o estado de carregamento
+    expect(screen.getByTestId("sales-chart")).toHaveTextContent(
+      "Loading Chart..."
     );
-    vi.spyOn(orderService, "getOrders").mockResolvedValue(mockOrders);
-    vi.spyOn(dashboardService, "getSalesByCategory").mockResolvedValue(
-      mockSalesByCategory
+    expect(screen.getByTestId("recent-orders")).toHaveTextContent(
+      "Loading Orders..."
     );
-    vi.spyOn(dashboardService, "getActiveCustomers").mockResolvedValue(25);
-    vi.spyOn(dashboardService, "getRevenueGrowth").mockResolvedValue(15.5);
   });
 
-  it("deve renderizar os cards de estatísticas com os dados corretos", async () => {
-    render(<Dashboard onTabChange={vi.fn()} />);
-
-    // Espera que o loading desapareça
-    await waitFor(() => {
-      expect(
-        screen.queryByText(/Carregando dados do dashboard.../i)
-      ).not.toBeInTheDocument();
+  it("should display dashboard data on successful fetch", () => {
+    mockedUseDashboardData.mockReturnValue({
+      data: mockDashboardData,
+      isLoading: false,
+      error: null,
     });
 
-    // Verifica os StatsCards
-    expect(screen.getByText("Pedidos Hoje")).toBeInTheDocument();
-    expect(screen.getByText("10")).toBeInTheDocument();
+    renderDashboard();
 
-    expect(screen.getByText("Receita Hoje")).toBeInTheDocument();
-    expect(screen.getByText("R$ 1500.50")).toBeInTheDocument();
+    // Verifica se os cards de estatísticas são renderizados com os dados corretos
+    expect(screen.getByText("Vendas Totais")).toBeInTheDocument();
+    expect(screen.getByText("R$ 12.500,50")).toBeInTheDocument();
 
-    expect(screen.getByText("Pedidos Ativos")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("Pedidos")).toBeInTheDocument();
+    expect(screen.getByText("342")).toBeInTheDocument();
 
-    expect(screen.getByText("Taxa de Conclusão")).toBeInTheDocument();
-    // (7 / 10) * 100 = 70%
-    expect(screen.getByText("70%")).toBeInTheDocument();
+    // Verifica se os componentes de gráfico e pedidos recentes renderizam seus dados
+    expect(screen.getByTestId("sales-chart")).toHaveTextContent("Chart Data");
+    expect(screen.getByTestId("recent-orders")).toHaveTextContent(
+      "Orders List"
+    );
   });
 
-  it("deve renderizar a lista de pedidos recentes", async () => {
-    render(<Dashboard onTabChange={vi.fn()} />);
-
-    await waitFor(() => {
-      expect(
-        screen.queryByText(/Carregando dados do dashboard.../i)
-      ).not.toBeInTheDocument();
+  it("should display zeroed or empty states when data is not available", () => {
+    mockedUseDashboardData.mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: new Error("Failed to fetch"), // Simula um erro
     });
 
-    // Verifica se o componente de pedidos recentes está na tela
-    expect(screen.getByText("Pedidos Recentes")).toBeInTheDocument();
+    renderDashboard();
 
-    // Verifica se os pedidos mockados são exibidos
-    expect(screen.getByText("João Silva")).toBeInTheDocument();
-    expect(screen.getByText("Maria Oliveira")).toBeInTheDocument();
-  });
+    // Mesmo com erro, o componente deve renderizar com valores padrão
+    expect(screen.getByText("Vendas Totais")).toBeInTheDocument();
+    expect(screen.getByText("R$ 0,00")).toBeInTheDocument();
 
-  it("deve renderizar o gráfico de vendas por categoria", async () => {
-    render(<Dashboard onTabChange={vi.fn()} />);
+    expect(screen.getByText("Pedidos")).toBeInTheDocument();
+    expect(screen.getByText("0")).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(
-        screen.queryByText(/Carregando dados do dashboard.../i)
-      ).not.toBeInTheDocument();
-    });
-
-    // Verifica se o título do gráfico está visível
-    expect(screen.getByText("Vendas por Categoria")).toBeInTheDocument();
+    expect(screen.getByTestId("sales-chart")).toHaveTextContent("Chart Data");
+    expect(screen.getByTestId("recent-orders")).toHaveTextContent(
+      "Orders List"
+    );
   });
 });

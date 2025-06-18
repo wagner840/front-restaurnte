@@ -31,6 +31,7 @@ export const MainApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const { logout } = useAuth();
+
   useEffect(() => {
     if (isSidebarOpen) {
       document.body.style.overflow = "hidden";
@@ -42,10 +43,28 @@ export const MainApp: React.FC = () => {
     };
   }, [isSidebarOpen]);
 
+  // Função melhorada para gerenciar mudanças de aba
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // Atualiza o título da página dinamicamente
+    const activeMenuItem = menuItems.find((item) => item.id === tab);
+    if (activeMenuItem) {
+      document.title = `${activeMenuItem.label} - RestaurantePro`;
+    }
+  };
+
+  // Atualiza o título na primeira renderização
+  useEffect(() => {
+    const activeMenuItem = menuItems.find((item) => item.id === activeTab);
+    if (activeMenuItem) {
+      document.title = `${activeMenuItem.label} - RestaurantePro`;
+    }
+  }, [activeTab]);
+
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard onTabChange={setActiveTab} />;
+        return <Dashboard onTabChange={handleTabChange} />;
       case "menu":
         return <Menu />;
       case "orders":
@@ -59,7 +78,7 @@ export const MainApp: React.FC = () => {
           <div className="p-4 md:p-8">
             <div className="max-w-4xl">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Relatórios
+                Relatórios e Análises
               </h1>
               <p className="text-gray-600 mb-8">
                 Análise detalhada do desempenho do seu restaurante
@@ -69,10 +88,11 @@ export const MainApp: React.FC = () => {
                   <BarChart3 className="w-8 h-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Em desenvolvimento
+                  Funcionalidade em Desenvolvimento
                 </h3>
                 <p className="text-gray-500">
-                  Relatórios avançados estarão disponíveis em breve.
+                  Os relatórios avançados de vendas, performance e análises
+                  detalhadas estarão disponíveis em breve.
                 </p>
               </div>
             </div>
@@ -83,27 +103,29 @@ export const MainApp: React.FC = () => {
           <div className="p-4 md:p-8">
             <div className="max-w-4xl">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Configurações
+                Configurações do Sistema
               </h1>
               <p className="text-gray-600 mb-8">
-                Personalize as configurações do seu restaurante
+                Personalize as configurações do seu restaurante e sistema
               </p>
               <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Settings className="w-8 h-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Em desenvolvimento
+                  Funcionalidade em Desenvolvimento
                 </h3>
                 <p className="text-gray-500">
-                  Painel de configurações estará disponível em breve.
+                  O painel de configurações para personalização do sistema,
+                  dados do restaurante e preferências estará disponível em
+                  breve.
                 </p>
               </div>
             </div>
           </div>
         );
       default:
-        return <Dashboard onTabChange={setActiveTab} />;
+        return <Dashboard onTabChange={handleTabChange} />;
     }
   };
 
@@ -111,7 +133,7 @@ export const MainApp: React.FC = () => {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onLogout={logout}
         isOpen={isSidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -123,7 +145,14 @@ export const MainApp: React.FC = () => {
           activeTab={activeTab}
           menuItems={menuItems}
         />
-        <main className="flex-1 overflow-auto">{renderContent()}</main>
+        <main
+          id="main-content"
+          className="flex-1 overflow-auto"
+          role="main"
+          aria-label="Conteúdo principal"
+        >
+          {renderContent()}
+        </main>
       </div>
     </div>
   );

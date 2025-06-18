@@ -1,11 +1,12 @@
 import { supabase } from "../lib/supabaseClient";
 import { MenuItem } from "../types";
+import { toast } from "sonner";
 
-export const getMenuItems = async () => {
+export const getMenuItems = async (): Promise<MenuItem[]> => {
   const { data, error } = await supabase.from("menu_items").select("*");
 
   if (error) {
-    console.error("Error fetching menu items:", error);
+    toast.error("Erro ao buscar itens do menu.");
     throw error;
   }
 
@@ -14,7 +15,7 @@ export const getMenuItems = async () => {
 
 export const addMenuItem = async (
   menuItem: Omit<MenuItem, "id" | "created_at">
-) => {
+): Promise<MenuItem> => {
   const { data, error } = await supabase
     .from("menu_items")
     .insert([menuItem])
@@ -22,7 +23,7 @@ export const addMenuItem = async (
     .single();
 
   if (error) {
-    console.error("Error adding menu item:", error);
+    toast.error("Erro ao adicionar item ao menu.");
     throw error;
   }
 
@@ -31,8 +32,8 @@ export const addMenuItem = async (
 
 export const updateMenuItem = async (
   id: string,
-  updates: Partial<MenuItem>
-) => {
+  updates: Partial<Omit<MenuItem, "id" | "created_at">>
+): Promise<MenuItem> => {
   const { data, error } = await supabase
     .from("menu_items")
     .update(updates)
@@ -41,18 +42,18 @@ export const updateMenuItem = async (
     .single();
 
   if (error) {
-    console.error("Error updating menu item:", error);
+    toast.error("Erro ao atualizar item do menu.");
     throw error;
   }
 
   return data;
 };
 
-export const deleteMenuItem = async (id: string) => {
+export const deleteMenuItem = async (id: string): Promise<void> => {
   const { error } = await supabase.from("menu_items").delete().eq("id", id);
 
   if (error) {
-    console.error("Error deleting menu item:", error);
+    toast.error("Erro ao deletar item do menu.");
     throw error;
   }
 };

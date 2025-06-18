@@ -1,199 +1,255 @@
 import React from "react";
-import { Order, OrderItemJson } from "../../types";
-import { Button } from "../ui/button";
-import { User, Hash, Truck, ShoppingBag } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Order, OrderStatus } from "../../types";
+import { Badge } from "../ui/badge";
+import {
+  User,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  Truck,
+  Package,
+  PackageCheck,
+  XCircle,
+  MoreVertical,
+  ChefHat,
+} from "lucide-react";
+import { cn, formatCurrency, formatDate } from "../../lib/utils";
+import { CardContent, CardFooter, CardHeader } from "../ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { BaseCard } from "../ui/BaseCard";
 
 interface OrderCardProps {
   order: Order;
-  onUpdateStatus: (orderId: string, status: Order["status"]) => void;
+  onUpdateStatus: (orderId: string, status: OrderStatus) => void;
+  onClick?: () => void;
 }
 
-const getStatusInfo = (status: Order["status"]) => {
+const statusFlow: OrderStatus[] = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "out_for_delivery",
+  "delivered",
+  "completed",
+  "cancelled",
+];
+
+const getStatusInfo = (status: OrderStatus) => {
   switch (status) {
     case "pending":
       return {
         text: "Pendente",
-        color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+        icon: AlertCircle,
+        badgeClass: "bg-status-pending text-status-pending-foreground",
+        borderColorClass: "border-status-pending",
       };
     case "confirmed":
       return {
         text: "Confirmado",
-        color: "bg-blue-100 text-blue-800 border-blue-200",
+        icon: Package,
+        badgeClass: "bg-status-confirmed text-status-confirmed-foreground",
+        borderColorClass: "border-status-confirmed",
       };
     case "preparing":
       return {
         text: "Preparando",
-        color: "bg-indigo-100 text-indigo-800 border-indigo-200",
+        icon: ChefHat,
+        badgeClass: "bg-status-preparing text-status-preparing-foreground",
+        borderColorClass: "border-status-preparing",
       };
     case "out_for_delivery":
       return {
         text: "Em Entrega",
-        color: "bg-cyan-100 text-cyan-800 border-cyan-200",
+        icon: Truck,
+        badgeClass:
+          "bg-status-out_for_delivery text-status-out_for_delivery-foreground",
+        borderColorClass: "border-status-out_for_delivery",
       };
     case "delivered":
       return {
         text: "Entregue",
-        color: "bg-green-100 text-green-800 border-green-200",
+        icon: PackageCheck,
+        badgeClass: "bg-status-delivered text-status-delivered-foreground",
+        borderColorClass: "border-status-delivered",
       };
     case "completed":
       return {
         text: "Concluído",
-        color: "bg-gray-100 text-gray-800 border-gray-200",
+        icon: CheckCircle2,
+        badgeClass: "bg-status-completed text-status-completed-foreground",
+        borderColorClass: "border-status-completed",
       };
     case "cancelled":
       return {
         text: "Cancelado",
-        color: "bg-red-100 text-red-800 border-red-200",
+        icon: XCircle,
+        badgeClass: "bg-status-cancelled text-status-cancelled-foreground",
+        borderColorClass: "border-status-cancelled",
       };
     default:
       return {
         text: "Desconhecido",
-        color: "bg-gray-100 text-gray-800 border-gray-200",
+        icon: AlertCircle,
+        badgeClass: "bg-gray-500 text-white",
+        borderColorClass: "border-gray-500",
       };
   }
 };
 
-const getNextStatus = (
-  status: Order["status"],
-  orderType: Order["order_type"]
-): Order["status"] | null => {
-  const deliveryFlow: Order["status"][] = [
-    "pending",
-    "confirmed",
-    "preparing",
-    "out_for_delivery",
-    "delivered",
-    "completed",
-  ];
-  const pickupFlow: Order["status"][] = [
-    "pending",
-    "confirmed",
-    "preparing",
-    "completed",
-  ];
-
-  const flow = orderType === "delivery" ? deliveryFlow : pickupFlow;
-
-  const currentIndex = flow.indexOf(status);
-  if (currentIndex !== -1 && currentIndex < flow.length - 1) {
-    return flow[currentIndex + 1];
-  }
-  return null;
-};
-
-// Função utilitária para extrair o nome do item de forma flexível
-const getItemName = (item: any): string => {
-  return (
-    item.item_name ||
-    item.name ||
-    item.item ||
-    item.product_name ||
-    "Item sem nome"
+const getOrderAge = (createdAt: string): string => {
+  const orderDate = new Date(createdAt);
+  const now = new Date();
+  const diffMinutes = Math.floor(
+    (now.getTime() - orderDate.getTime()) / (1000 * 60)
   );
+
+  if (diffMinutes < 1) return "Agora";
+  if (diffMinutes < 60) return `${diffMinutes}min`;
+  const hours = Math.floor(diffMinutes / 60);
+  return `${hours}h${diffMinutes % 60}min`;
 };
 
 export const OrderCard: React.FC<OrderCardProps> = ({
   order,
   onUpdateStatus,
+  onClick,
 }) => {
-  const nextStatus = getNextStatus(order.status, order.order_type);
   const statusInfo = getStatusInfo(order.status);
+  const StatusIcon = statusInfo.icon;
+  const orderAge = getOrderAge(order.created_at);
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
-  let items: OrderItemJson[] = [];
-  if (typeof order.order_items === "string") {
-    try {
-      items = JSON.parse(order.order_items);
-    } catch (e) {
-      console.error("Failed to parse order_items:", e);
-    }
-  } else if (Array.isArray(order.order_items)) {
-    items = order.order_items;
-  }
+  const handleStatusChange = (e: React.MouseEvent, newStatus: OrderStatus) => {
+    e.stopPropagation();
+    onUpdateStatus(order.order_id, newStatus);
+  };
+
+  const OrderTypeIcon = order.order_type === "delivery" ? Truck : Package;
 
   return (
-    <div className="bg-white rounded-lg border border-[#e5e8ea] p-4 sm:p-6 flex flex-col h-full">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Hash size={16} className="text-[#607589]" />
-            <span className="font-bold text-[#111416]">
-              {order.order_id.substring(0, 8)}
-            </span>
-          </div>
-          <span
-            className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${statusInfo.color}`}
-          >
-            {statusInfo.text}
-          </span>
-        </div>
-        <div className="w-full sm:w-auto text-left sm:text-right">
-          <p className="text-xl font-bold text-[#111416]">
-            R$ {(order.total_amount || 0).toFixed(2)}
-          </p>
-          <p className="text-sm text-[#607589]">
-            {new Date(order.created_at).toLocaleTimeString("pt-BR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          {order.order_type === "delivery" ? (
-            <Truck size={16} />
-          ) : (
-            <ShoppingBag size={16} />
-          )}
-          <span>
-            {order.order_type === "delivery" ? "Delivery" : "Retirada"}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <User size={16} className="text-[#607589]" />
-          <span className="text-[#607589]">
-            {order.customer?.name || "Cliente não identificado"}
-          </span>
-        </div>
-      </div>
-
-      <div className="space-y-2 mb-4 flex-grow">
-        {items.map((item, index) => (
-          <div
-            key={index}
-            className="flex justify-between items-start py-2 border-b border-[#e5e8ea] last:border-b-0 gap-2"
-          >
-            <div className="flex-grow">
-              <span className="font-medium text-[#111416]">
-                {item.quantity}x {getItemName(item)}
-              </span>
-              {item.notes && (
-                <p className="text-sm text-[#607589] mt-1">Obs: {item.notes}</p>
-              )}
-              {item.details && (
-                <p className="text-sm text-[#607589] mt-1">
-                  Detalhes: {item.details}
-                </p>
-              )}
-            </div>
-            <span className="text-right text-[#607589] flex-shrink-0">
-              R$ {(item.price * item.quantity).toFixed(2)}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-auto">
-        {nextStatus && (
-          <Button
-            onClick={() => onUpdateStatus(order.order_id, nextStatus)}
-            className="w-full bg-[#0c7ff2] hover:bg-[#0c7ff2]/90"
-          >
-            Marcar como {getStatusInfo(nextStatus).text}
-          </Button>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      whileHover={{ y: -3, boxShadow: "0 10px 20px -5px rgba(0,0,0,0.1)" }}
+    >
+      <BaseCard
+        onClick={onClick}
+        className={cn(
+          "flex flex-col justify-between h-full",
+          "focus:ring-2 focus:ring-primary focus:ring-offset-2",
+          statusInfo.borderColorClass,
+          order.status === "pending" && "animate-pulse-subtle",
+          onClick && "cursor-pointer"
         )}
-      </div>
-    </div>
+      >
+        <CardHeader className="p-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <DropdownMenu onOpenChange={setIsMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Badge
+                    className={cn(
+                      "cursor-pointer whitespace-nowrap transition-colors hover:bg-opacity-80",
+                      statusInfo.badgeClass
+                    )}
+                  >
+                    <StatusIcon className="w-4 h-4 mr-1.5" />
+                    {statusInfo.text}
+                  </Badge>
+                </DropdownMenuTrigger>
+                <AnimatePresence>
+                  {isMenuOpen && (
+                    <DropdownMenuContent
+                      asChild
+                      forceMount
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.1 }}
+                      >
+                        {statusFlow.map((status) => (
+                          <DropdownMenuItem
+                            key={status}
+                            onClick={(e) => handleStatusChange(e, status)}
+                            disabled={order.status === status}
+                          >
+                            {getStatusInfo(status).text}
+                          </DropdownMenuItem>
+                        ))}
+                      </motion.div>
+                    </DropdownMenuContent>
+                  )}
+                </AnimatePresence>
+              </DropdownMenu>
+              <Badge variant="secondary">
+                <Clock className="w-4 h-4 mr-1" />
+                {orderAge}
+              </Badge>
+            </div>
+            <Badge variant="outline" className="flex items-center gap-1.5">
+              <OrderTypeIcon className="w-4 h-4" />
+              {order.order_type === "delivery" ? "Delivery" : "Retirada"}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 pt-0 flex-grow space-y-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span>{formatDate(order.created_at)}</span>
+            </div>
+            {order.customerName && (
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="text-lg font-semibold">
+                  {order.customerName}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="space-y-2 pt-2 border-t">
+            <h4 className="text-sm font-medium text-muted-foreground">
+              Itens:
+            </h4>
+            <div className="space-y-1">
+              {(order.order_items || []).map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span>
+                    {item.quantity}x {item.name}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {formatCurrency(item.price * item.quantity)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="p-4 pt-2 border-t flex justify-between items-center">
+          <span className="text-lg font-bold">
+            {formatCurrency(order.total_amount)}
+          </span>
+          <motion.div whileHover={{ scale: 1.2, color: "hsl(var(--primary))" }}>
+            <MoreVertical
+              className="w-5 h-5 text-muted-foreground"
+              aria-label="Mais ações"
+            />
+          </motion.div>
+        </CardFooter>
+      </BaseCard>
+    </motion.div>
   );
 };

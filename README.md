@@ -1,117 +1,105 @@
-# RestaurantePro - Painel de Gerenciamento
+# Restaurant Management System
 
-Um painel de controle moderno e eficiente para gerenciamento de restaurantes, permitindo a administração de cardápios, pedidos, clientes e o acompanhamento de métricas de desempenho.
+Um sistema moderno de gerenciamento de restaurantes construído com React, Next.js, Supabase e TailwindCSS.
 
-![Badge](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
-![Badge](https://img.shields.io/badge/React-18.2.0-blue)
-![Badge](https://img.shields.io/badge/TypeScript-5.2.2-blue)
-![Badge](https://img.shields.io/badge/Docker-ready-blue)
-![Badge](https://img.shields.io/badge/Supabase-backend-green)
+## Funcionalidades
 
-## 📖 Visão Geral
+- 📊 Dashboard com métricas em tempo real
+- 🍽️ Gerenciamento de cardápio
+- 📝 Controle de pedidos em tempo real
+- 📱 Interface responsiva e moderna
+- 🎨 Temas claro e escuro
+- 🔄 Atualizações em tempo real com Supabase
+- 📈 Gráficos e relatórios
 
-Este projeto é uma Single-Page Application (SPA) construída com React e TypeScript, utilizando Vite como ferramenta de build. A aplicação é totalmente containerizada com Docker, garantindo consistência entre os ambientes de desenvolvimento e produção. O backend é fornecido pelo Supabase.
+## Tecnologias
 
-Para uma documentação técnica detalhada sobre a arquitetura, componentes e funcionalidades, consulte o arquivo [`DOCUMENTACAO.md`](./DOCUMENTACAO.md).
+- React 18
+- Next.js 14
+- Supabase
+- TailwindCSS
+- Framer Motion
+- React Query
+- Radix UI
+- TypeScript
 
-## ✨ Funcionalidades Principais
+## Pré-requisitos
 
-- **Dashboard Interativo:** Visualização rápida de estatísticas de vendas, pedidos recentes e gráficos de desempenho.
-- **Gerenciamento de Cardápio:** Funcionalidades completas de Criar, Ler, Atualizar e Deletar (CRUD) para itens do cardápio.
-- **Gerenciamento de Pedidos:** Acompanhamento de pedidos com atualização de status em tempo real.
-- **Base de Clientes:** Cadastro, consulta e visualização de detalhes e histórico de clientes.
-- **Acompanhamento de Aniversariantes:** Lista de clientes aniversariantes para ações de marketing.
-- **Autenticação Segura:** Sistema de login para acesso ao painel.
+- Node.js 18+
+- Conta no Supabase
 
-## 🛠️ Arquitetura e DevOps
+## Configuração
 
-O projeto foi estruturado seguindo as melhores práticas de DevOps para garantir um ciclo de desenvolvimento robusto, seguro e automatizado.
-
-- **Containerização Total:** Utilizamos **Docker** e **Docker Compose** para criar ambientes de desenvolvimento e produção isolados e consistentes. Isso elimina o problema de "funciona na minha máquina" e simplifica o setup.
-- **Ambientes Separados:**
-  - **Desenvolvimento:** Um ambiente com **hot-reload** que permite que as alterações no código sejam refletidas instantaneamente no navegador, otimizando a produtividade.
-  - **Produção:** Um build otimizado e servido por um **Nginx** robusto, garantindo performance e segurança.
-- **CI/CD com GitHub Actions:** Um pipeline de integração contínua está configurado em `.github/workflows/ci.yml`. Ele automaticamente executa testes e builds a cada `push` ou `pull request`, garantindo a qualidade do código.
-
-## 🚀 Como Começar (Ambiente de Desenvolvimento)
-
-A maneira recomendada para rodar este projeto é usando Docker.
-
-### Pré-requisitos
-
-- Docker e Docker Compose
-- Git
-
-### 1. Clonar o Repositório
+1. Clone o repositório:
 
 ```bash
-git clone https://github.com/seu-usuario/restaurante-pro.git
-cd restaurante-pro
+git clone https://github.com/seu-usuario/restaurant-management.git
+cd restaurant-management
 ```
 
-### 2. Configurar Variáveis de Ambiente
+2. Instale as dependências:
 
-Copie o arquivo de exemplo `.env.example` para um novo arquivo chamado `.env.local`. Este arquivo é usado tanto pelo Docker Compose quanto pelo Vite.
+```bash
+npm install
+```
+
+3. Configure as variáveis de ambiente:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Agora, edite o arquivo `.env.local` e preencha com suas credenciais do Supabase:
-
-```
-VITE_SUPABASE_URL=SUA_URL_DO_SUPABASE
-VITE_SUPABASE_ANON_KEY=SUA_CHAVE_ANON_DO_SUPABASE
-```
-
-### 3. Iniciar o Ambiente de Desenvolvimento
-
-Com o Docker em execução, suba os contêineres. O Docker Compose usará automaticamente os arquivos `docker-compose.yml` e `docker-compose.override.yml` para criar o ambiente de desenvolvimento.
+Edite o arquivo `.env.local` com suas credenciais do Supabase:
 
 ```bash
-docker-compose up --build
+NEXT_PUBLIC_SUPABASE_URL=sua-url-do-supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anonima-do-supabase
 ```
 
-- O comando `--build` é necessário apenas na primeira vez ou quando houver alterações nos Dockerfiles.
-
-O aplicativo estará disponível em **`http://localhost:5173`**. Graças ao hot-reload, qualquer alteração no código-fonte será refletida instantaneamente no seu navegador.
-
-Para parar o ambiente, pressione `Ctrl + C` no terminal e execute:
+4. Inicie o servidor de desenvolvimento:
 
 ```bash
-docker-compose down
+npm run dev
 ```
 
-## 🧪 Como Rodar os Testes
+## Configuração do Sentry
 
-Os testes são executados dentro do contêiner de desenvolvimento para garantir consistência.
+Crie (ou edite) o arquivo `.env.local` na raiz do projeto e adicione a seguinte linha:
 
-1.  Inicie o ambiente com `docker-compose up`.
-2.  Em um novo terminal, acesse o shell do contêiner:
-    ```bash
-    docker-compose exec app sh
-    ```
-3.  Dentro do contêiner, execute os testes:
-    ```bash
-    npm test
-    ```
-
-## 🏗️ Build de Produção
-
-Para simular o build de produção localmente (o mesmo que o pipeline de CI/CD executa), use o seguinte comando. Ele ignora o `override` de desenvolvimento e usa apenas a configuração de produção.
-
-```bash
-docker-compose -f docker-compose.yml build
+```
+VITE_SENTRY_DSN=https://344f557042f7113928cd433a1e162f8c@o4509517235814400.ingest.us.sentry.io/4509517275922432
 ```
 
-## 🤝 Como Contribuir
+Depois, siga para a integração no código fonte.
 
-1.  **Faça um Fork** do projeto.
-2.  **Crie uma Branch** para sua feature (`git checkout -b feature/nova-feature`).
-3.  **Faça o Commit** de suas mudanças (`git commit -m 'Adiciona nova feature'`).
-4.  **Faça o Push** para a sua branch (`git push origin feature/nova-feature`).
-5.  **Abra um Pull Request**.
+## Estrutura do Projeto
 
----
+```
+src/
+  ├── components/     # Componentes reutilizáveis
+  ├── hooks/         # Hooks personalizados
+  ├── lib/           # Configurações e utilitários
+  ├── screens/       # Páginas da aplicação
+  ├── services/      # Serviços e APIs
+  ├── styles/        # Estilos globais
+  └── types/         # Definições de tipos
+```
 
-Feito com ❤️ para simplificar a gestão de restaurantes.
+## Scripts Disponíveis
+
+- `npm run dev` - Inicia o servidor de desenvolvimento
+- `npm run build` - Cria a build de produção
+- `npm run start` - Inicia o servidor de produção
+- `npm run lint` - Executa o linter
+
+## Contribuindo
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. Faça commit das suas alterações (`git commit -m 'Adiciona nova feature'`)
+4. Faça push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request
+
+## Licença
+
+MIT

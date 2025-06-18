@@ -4,7 +4,7 @@
 
 Este documento detalha a arquitetura, funcionalidades e estrutura do sistema de gerenciamento para restaurantes. A aplicação foi desenvolvida para fornecer uma interface centralizada para gerenciar pedidos, cardápio, clientes e obter insights sobre o desempenho do negócio.
 
-A aplicação é uma Single-Page Application (SPA) construída com **React** e **TypeScript**, utilizando **Vite** como ferramenta de build e **Tailwind CSS** para estilização. O backend é totalmente gerenciado pelo **Supabase**, que fornece o banco de dados PostgreSQL, autenticação e APIs RESTful.
+A aplicação é uma Single-Page Application (SPA) construída com **React** e **TypeScript**, utilizando **Vite** como ferramenta de build e **Tailwind CSS** para estilização. O backend é totalmente gerenciado pelo **Supabase**, que fornece o banco de dados PostgreSQL, autenticação e APIs RESTful. Para o gerenciamento de estado do servidor, cache e sincronização de dados, o projeto adota a biblioteca **`@tanstack/react-query`**.
 
 ## 2. Estrutura do Projeto
 
@@ -17,7 +17,7 @@ restaurante-pro/
 ├── src/
 │   ├── components/       # Componentes React reutilizáveis (ex: botões, modais, cards).
 │   ├── data/             # Mock data usado para desenvolvimento e testes.
-│   ├── hooks/            # Hooks customizados (ex: useAuth para autenticação).
+│   ├── hooks/            # Hooks customizados que abstraem a lógica de dados (ex: useMenuItems).
 │   ├── lib/              # Configuração de clientes de API (Supabase) e funções utilitárias.
 │   ├── screens/          # Componentes que representam as telas principais da aplicação (Dashboard, Pedidos, etc.).
 │   ├── services/         # Funções que encapsulam a lógica de comunicação com a API do Supabase.
@@ -52,29 +52,30 @@ A aplicação principal (`MainApp`) é composta por um layout com uma barra late
 ### 4.1. Dashboard
 
 - **Arquivo:** [`src/screens/Dashboard/Dashboard.tsx`](src/screens/Dashboard/Dashboard.tsx)
-- **Descrição:** A tela inicial após o login, fornecendo um resumo visual e em tempo real das operações do restaurante.
+- **Descrição:** A tela inicial após o login, fornecendo um resumo visual das operações do restaurante.
 - **Componentes:**
   - `StatsCard`: Exibe métricas como "Pedidos Hoje", "Receita Hoje" e "Pedidos Ativos".
   - `RecentOrders`: Lista os 5 pedidos mais recentes.
   - `SalesByCategoryChart`: Gráfico de pizza com a distribuição da receita por categoria.
-- **Fonte de Dados:** As informações são buscadas através de funções no [`src/services/api.ts`](src/services/api.ts), como `getDashboardStats`, `getOrders` e `getSalesByCategory`.
 
 ### 4.2. Cardápio
 
 - **Arquivo:** [`src/screens/Menu/Menu.tsx`](src/screens/Menu/Menu.tsx)
 - **Descrição:** Permite o gerenciamento completo (CRUD) dos itens do cardápio.
 - **Funcionalidades:**
-  - **Listagem e Busca:** Exibe os itens em cartões (`MenuItemCard`) e permite busca por nome e filtro por categoria.
+  - **Listagem e Busca:** Exibe os itens em cartões (`MenuItemCard`) e permite busca por nome e filtro por categoria. Os dados são gerenciados pelo hook `useMenuItems`.
   - **Adicionar e Editar:** Um modal (`MenuItemFormModal`) é usado para criar e atualizar itens.
-  - **Exclusão:** A funcionalidade de exclusão está implementada, permitindo remover itens do cardápio.
+  - **Exclusão:** A funcionalidade de exclusão utiliza uma **Atualização Otimista (Optimistic Update)**. Ao excluir um item, a UI é atualizada instantaneamente, assumindo que a operação no servidor será bem-sucedida. Em caso de erro, a UI é revertida ao estado anterior e uma notificação de erro é exibida.
+- **Feedback ao Usuário:** Após cada operação de CRUD (criar, editar, excluir), uma notificação visual (toast) é exibida usando a biblioteca `sonner` para informar o sucesso ou falha da ação.
 
 ### 4.3. Pedidos
 
 - **Arquivo:** [`src/screens/Orders/Orders.tsx`](src/screens/Orders/Orders.tsx)
-- **Descrição:** Centraliza o gerenciamento de todos os pedidos recebidos.
+- **Descrição:** Centraliza o gerenciamento de todos os pedidos recebidos, com atualizações em tempo real.
 - **Funcionalidades:**
-  - **Listagem e Filtros:** Exibe os pedidos em cartões (`OrderCard`) e permite filtrar por tipo (Delivery, Retirada) e status (Pendente, Confirmado, etc.).
+  - **Listagem e Filtros:** Exibe os pedidos em cartões (`OrderCard`) e permite filtrar por tipo e status.
   - **Atualização de Status:** O status de cada pedido pode ser alterado diretamente no card.
+  - **Atualizações em Tempo Real:** A tela utiliza a funcionalidade **Supabase Realtime**. O hook `useRealtimeOrders` se inscreve em eventos de broadcast do canal `orders`. Quando um novo pedido é criado em qualquer parte do sistema (ex: Ponto de Venda), um evento é emitido, e a query de pedidos é invalidada e atualizada automaticamente, exibindo o novo pedido na tela sem a necessidade de recarregamento manual.
 
 ### 4.4. Clientes
 
@@ -83,96 +84,48 @@ A aplicação principal (`MainApp`) é composta por um layout com uma barra late
 - **Funcionalidades:**
   - **Listagem e Busca:** Exibe todos os clientes e permite busca por nome ou e-mail.
   - **Adicionar Cliente:** Um modal (`AddCustomerModal`) permite o cadastro de novos clientes.
-  - **Detalhes do Cliente:** O modal `CustomerDetailModal` exibe o histórico de pedidos, total gasto e outras informações relevantes.
+  - **Detalhes do Cliente:** O modal `CustomerDetailModal` exibe o histórico de pedidos e total gasto.
 
 ### 4.5. Aniversariantes
 
 - **Arquivo:** [`src/screens/Birthdays/Birthdays.tsx`](src/screens/Birthdays/Birthdays.tsx)
-- **Descrição:** Mostra uma lista de clientes que farão aniversário nos próximos 30 dias, facilitando ações de marketing.
+- **Descrição:** Mostra uma lista de clientes que farão aniversário nos próximos 30 dias.
 - **Funcionalidades:**
   - **Listagem:** Exibe os aniversariantes em cartões (`BirthdayCustomerCard`).
-  - **Gerenciamento de Status:** Permite atualizar o status do contato com o cliente (ex: "Elegível", "Contato Enviado", "Reservado").
+  - **Gerenciamento de Status:** Permite atualizar o status do contato com o cliente.
 
 ## 5. Estrutura de Dados (Tipos)
 
 - **Arquivo:** [`src/types/index.ts`](src/types/index.ts)
 - **Descrição:** Define as interfaces TypeScript para os principais modelos de dados da aplicação, garantindo a consistência e a segurança de tipos.
 
-**Exemplos de Tipos Principais:**
+## 6. Gerenciamento de Estado com React Query
 
-```typescript
-// Exemplo de um item do cardápio
-export interface MenuItem {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  image_url?: string;
-}
+O projeto utiliza **`@tanstack/react-query`** para gerenciar o estado do servidor, simplificando a busca, o cache e a sincronização de dados com o backend. Essa abordagem substitui a necessidade de gerenciar manualmente estados de carregamento, erro e dados em componentes React.
 
-// Exemplo de um pedido
-export interface Order {
-  id: number;
-  customer_id: string;
-  status:
-    | "Pendente"
-    | "Confirmado"
-    | "Preparando"
-    | "Pronto"
-    | "Entregue"
-    | "Cancelado";
-  total: number;
-  order_type: "Delivery" | "Retirada";
-  created_at: string;
-  items: OrderItem[]; // Array de itens do pedido
-  customers: Customer; // Objeto com dados do cliente
-}
+- **Hooks Customizados:** A lógica do React Query é abstraída em hooks customizados, localizados em [`src/hooks/`](src/hooks/). Por exemplo, o hook [`useMenuItems`](src/hooks/useMenuItems.ts) encapsula toda a lógica para buscar, adicionar, atualizar e excluir itens do cardápio.
 
-// Exemplo de um cliente
-export interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  date_of_birth: string;
-}
-```
+- **Caching e Invalidação:** O React Query armazena em cache os dados buscados para evitar requisições redundantes. Após uma mutação (ex: criar um novo item), a query correspondente (ex: a lista de itens) é invalidada, forçando a busca de dados atualizados e garantindo que a UI esteja sempre sincronizada com o estado do servidor.
 
-## 6. API de Serviços
-
-- **Arquivo:** [`src/services/api.ts`](src/services/api.ts)
-- **Descrição:** Centraliza todas as funções que interagem com o backend (Supabase) para buscar e manipular dados. O uso deste serviço desacopla a lógica de acesso a dados dos componentes da UI.
-
-**Principais Funções:**
-
-- `getOrders`, `createOrder`, `updateOrderStatus`
-- `getCustomers`, `createCustomer`, `getCustomerDetails`
-- `getMenuItems`, `addMenuItem`, `updateMenuItem`, `deleteMenuItem`
-- `getDashboardStats`, `getSalesByCategory`
-- `getBirthdayCustomers`, `updateCustomerBirthdayStatus`
+- **Feedback Visual:** A biblioteca **`sonner`** é integrada aos hooks de mutação para fornecer feedback instantâneo ao usuário. Em caso de sucesso, uma notificação de "sucesso" é exibida; em caso de falha, uma notificação de "erro" aparece, melhorando a experiência do usuário.
 
 ## 7. Desenvolvimento com Docker
 
 Para facilitar a configuração do ambiente de desenvolvimento, o projeto inclui suporte a Docker.
 
-- **Dockerfile:** Define a imagem do contêiner para a aplicação React. Ele instala as dependências e define o comando para iniciar o servidor de desenvolvimento.
-- **docker-compose.yml:** Orquestra o serviço da aplicação, mapeando as portas e volumes necessários para que o hot-reloading funcione corretamente.
+- **Dockerfile:** Define a imagem do contêiner para a aplicação React.
+- **docker-compose.yml:** Orquestra o serviço da aplicação.
 
 **Como usar:**
 
 1.  Certifique-se de que o Docker e o Docker Compose estão instalados.
-2.  Configure o arquivo `.env` conforme descrito na seção "Como Começar".
-3.  Execute o comando na raiz do projeto:
-    ```bash
-    docker-compose up --build
-    ```
+2.  Configure o arquivo `.env` a partir do `.env.example`.
+3.  Execute o comando na raiz do projeto: `docker-compose up --build`
 4.  A aplicação estará disponível em `http://localhost:5173`.
 
 ## 8. Possíveis Melhorias e Implementações Futuras
 
 - **Relatórios Avançados:** Implementar a tela de relatórios com gráficos interativos sobre vendas, itens mais vendidos e horários de pico, com opção de exportação (PDF/CSV).
 - **Configurações do Restaurante:** Criar um painel para configurar informações do restaurante (nome, endereço, horário) e taxas de entrega.
-- **Notificações em Tempo Real:** Implementar notificações push ou sonoras para novos pedidos usando o Realtime do Supabase.
 - **Programa de Fidelidade:** Expandir a funcionalidade de aniversariantes para um programa de fidelidade completo com pontos e recompensas.
 - **Testes Automatizados:** Aumentar a cobertura de testes unitários e de integração para garantir a estabilidade do código a longo prazo.

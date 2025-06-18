@@ -1,7 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { Customer } from "../../types";
+import React from "react";
+import { Customer, CustomerDetails } from "../../types";
 import {
-  X,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
   User,
   Phone,
   Mail,
@@ -9,14 +19,11 @@ import {
   DollarSign,
   Calendar,
   Gift,
+  Loader2,
 } from "lucide-react";
-import { updateCustomerGiftStatus } from "../../services/customerService";
-
-interface CustomerDetails {
-  totalOrders: number;
-  totalSpent: number;
-  favoriteDays: string[];
-}
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateCustomerBirthdayStatus } from "../../services/customerService";
+import { toast } from "sonner";
 
 interface Props {
   isOpen: boolean;
@@ -24,7 +31,6 @@ interface Props {
   customer: Customer | null;
   details: CustomerDetails | null;
   isLoading: boolean;
-  onCustomerUpdate: (updatedCustomer: Customer) => void;
 }
 
 export const CustomerDetailModal: React.FC<Props> = ({
@@ -33,202 +39,189 @@ export const CustomerDetailModal: React.FC<Props> = ({
   customer,
   details,
   isLoading,
-  onCustomerUpdate,
 }) => {
-  const [isUpdatingGiftStatus, setIsUpdatingGiftStatus] = useState(false);
-  const [giftStatus, setGiftStatus] = useState<"Sim" | "Não">("Não");
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (customer?.Is_Gift_Used === "Sim") {
-      setGiftStatus("Sim");
-    } else {
-      setGiftStatus("Não");
+  const renderBirthdayStatusBadge = (status: Customer["birthday_status"]) => {
+    let variant: "success" | "warning" | "destructive" | "outline" = "outline";
+    let text = "Disponível";
+
+    switch (status) {
+      case "completed":
+        variant = "warning";
+        text = "Utilizado";
+        break;
+      case "eligible":
+      case "booked":
+      case "30d_sent":
+      case "15d_sent":
+        variant = "success";
+        text = "Disponível";
+        break;
+      case "declined":
+        variant = "destructive";
+        text = "Vencido";
+        break;
+      default:
+        text = status;
     }
-  }, [customer]);
+
+    return <Badge variant={variant}>{text}</Badge>;
+  };
+
+  const updateGiftStatusMutation = useMutation({
+    mutationFn: ({
+      customerId,
+      status,
+    }: {
+      customerId: string;
+      status: "eligible" | "completed";
+    }) => updateCustomerBirthdayStatus(customerId, status),
+    onSuccess: () => {
+      toast.success("Status do brinde atualizado.");
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({
+        queryKey: ["customerDetails", customer?.customer_id],
+      });
+    },
+    onError: () => {
+      toast.error("Falha ao atualizar status do brinde.");
+    },
+  });
 
   if (!isOpen || !customer) return null;
 
-  const handleToggleGiftStatus = async () => {
-    if (!customer) return;
-
-    setIsUpdatingGiftStatus(true);
-    try {
-      // Lógica ajustada para usar birthday_status conforme o tipo
-      const newStatus = giftStatus === "Sim" ? "eligible" : "completed";
-      const updatedCustomer = await updateCustomerGiftStatus(
-        customer.customer_id,
-        newStatus
-      );
-      setGiftStatus(giftStatus === "Sim" ? "Não" : "Sim"); // Mantém a UI consistente
-      onCustomerUpdate(updatedCustomer);
-    } catch (error) {
-      console.error("Failed to update gift status:", error);
-      // Aqui você pode adicionar um toast ou notificação de erro
-    } finally {
-      setIsUpdatingGiftStatus(false);
-    }
+  const handleToggleGiftStatus = () => {
+    const newStatus =
+      customer.birthday_status === "completed" ? "eligible" : "completed";
+    updateGiftStatusMutation.mutate({
+      customerId: customer.customer_id,
+      status: newStatus,
+    });
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-      <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[95vh] flex flex-col animate-in fade-in-0 zoom-in-95"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="customer-detail-title"
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between p-4 sm:p-6 border-b">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <User className="w-6 h-6 text-orange-500" />
-            </div>
-            <div>
-              <h2
-                id="customer-detail-title"
-                className="text-xl sm:text-2xl font-bold text-gray-900"
-              >
-                {customer.name}
-              </h2>
-              <p className="text-sm text-gray-500 truncate">{customer.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-          >
-            <X size={24} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <User className="h-6 w-6" />
+            {customer.name}
+          </DialogTitle>
+          <DialogDescription>{customer.email}</DialogDescription>
+        </DialogHeader>
 
-        {/* Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto">
+        <div className="py-4 space-y-4">
           {isLoading ? (
-            <div className="text-center py-16">
-              <p className="text-lg text-gray-500">Carregando detalhes...</p>
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : details ? (
-            <div className="space-y-6">
-              {/* Contato */}
-              <div>
-                <h3 className="text-base font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Contato
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Mail size={18} className="text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-800 break-all">
-                      {customer.email}
-                    </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Contato</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span>{customer.email}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Phone size={18} className="text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-800">{customer.whatsapp}</span>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{customer.whatsapp}</span>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
-              {/* Brinde de Aniversário */}
-              <div>
-                <h3 className="text-base font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Brinde de Aniversário
-                </h3>
-                <div className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Gift size={22} className="text-gray-500" />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    Brinde de Aniversário
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Gift className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-sm">
+                        {renderBirthdayStatusBadge(customer.birthday_status)}
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleToggleGiftStatus}
+                      disabled={updateGiftStatusMutation.isPending}
+                    >
+                      {customer.birthday_status === "completed"
+                        ? "Reverter"
+                        : "Utilizar"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-lg">Histórico</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 rounded-lg border p-3">
+                    <ShoppingCart className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-gray-600">Brinde utilizado?</p>
-                      <p className="text-lg font-bold text-gray-900">
-                        {giftStatus}
+                      <p className="text-sm text-muted-foreground">Pedidos</p>
+                      <p className="font-bold">{details.totalOrders}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-lg border p-3">
+                    <DollarSign className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Total Gasto
+                      </p>
+                      <p className="font-bold">
+                        {details.totalSpent.toFixed(2)}
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={handleToggleGiftStatus}
-                    disabled={isUpdatingGiftStatus}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                      isUpdatingGiftStatus
-                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                        : giftStatus === "Sim"
-                        ? "bg-red-100 text-red-700 hover:bg-red-200"
-                        : "bg-green-100 text-green-700 hover:bg-green-200"
-                    }`}
-                  >
-                    {isUpdatingGiftStatus
-                      ? "Atualizando..."
-                      : giftStatus === "Sim"
-                      ? "Marcar como Não Usado"
-                      : "Marcar como Usado"}
-                  </button>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
-              {/* Histórico */}
-              <div>
-                <h3 className="text-base font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Histórico
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg flex items-center gap-4">
-                    <ShoppingCart size={22} className="text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-600">Pedidos</p>
-                      <p className="text-lg font-bold text-gray-900">
-                        {details.totalOrders}
-                      </p>
-                    </div>
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-lg">Hábitos de Consumo</CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex flex-wrap gap-2">
+                    {details.favoriteDays.length > 0 ? (
+                      details.favoriteDays.map((day) => (
+                        <Badge key={day} variant="secondary">
+                          {day}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        Não há dados suficientes.
+                      </span>
+                    )}
                   </div>
-                  <div className="bg-gray-50 p-4 rounded-lg flex items-center gap-4">
-                    <DollarSign size={22} className="text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-600">Total Gasto</p>
-                      <p className="text-lg font-bold text-gray-900">
-                        R$ {details.totalSpent.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Hábitos */}
-              <div>
-                <h3 className="text-base font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Hábitos
-                </h3>
-                <div className="flex items-start gap-3">
-                  <Calendar
-                    size={18}
-                    className="text-gray-400 flex-shrink-0 mt-1"
-                  />
-                  <div>
-                    <p className="text-gray-800">Dias preferidos para pedir:</p>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {details.favoriteDays.length > 0 ? (
-                        details.favoriteDays.map((day) => (
-                          <span
-                            key={day}
-                            className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium capitalize"
-                          >
-                            {day}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-sm text-gray-500">
-                          Não há dados suficientes.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           ) : (
-            <div className="text-center py-16 text-red-500">
+            <div className="text-center text-destructive">
               <p>Falha ao carregar detalhes do cliente.</p>
             </div>
           )}
         </div>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

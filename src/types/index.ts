@@ -2,59 +2,55 @@
 export interface MenuItem {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   price: number;
   category: string;
+  image: string | null;
   available: boolean;
-  image?: string | null;
+  created_at: string;
 }
 
 // Tipo para os itens dentro do campo JSONB 'order_items'
 // Flexível para suportar diferentes estruturas do banco de dados
 export interface OrderItemJson {
-  menuItemId?: string;
-  // Campos de nome (um destes deve estar presente)
-  item_name?: string;
-  name?: string;
-  item?: string;
-  product_name?: string;
-  // Campos obrigatórios
-  quantity: number;
+  name: string;
   price: number;
-  // Campos opcionais
-  notes?: string;
-  details?: string;
+  quantity: number;
 }
+
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "preparing"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled"
+  | "completed";
 
 export interface Order {
   order_id: string;
-  created_at: string;
-  status:
-    | "pending"
-    | "confirmed"
-    | "preparing"
-    | "out_for_delivery"
-    | "delivered"
-    | "cancelled"
-    | "completed";
-  total_amount: number;
-  order_type: "delivery" | "pickup";
+  customer_id: string | null;
+  delivery_address_id: string | null;
   order_items: OrderItemJson[];
-
-  // Campos das tabelas relacionadas
-  customer: {
-    name: string;
-  } | null;
-
-  address: {
-    street: string;
-    number: string;
-    city: string;
-  } | null;
-
-  // Campos que não estão no schema mas podem ser úteis no frontend
-  // Mapeado de `customer.name` para compatibilidade com componentes existentes
+  order_type: "delivery" | "pickup";
+  status: OrderStatus;
+  subtotal_amount: number;
+  shipping_cost: number;
+  total_amount: number;
+  pending_reminder_sent: boolean;
+  created_at: string;
+  last_updated_at: string;
   customerName?: string;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  menu_item_id: string;
+  menu_item_name: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
 }
 
 export interface Category {
@@ -64,10 +60,12 @@ export interface Category {
 }
 
 export interface DashboardStats {
-  totalOrders: number;
-  revenue: number;
+  ordersToday: number;
+  revenueToday: number;
   activeOrders: number;
-  completedOrders: number;
+  completionRate: number;
+  revenueGrowth: number;
+  activeCustomers30d: number;
 }
 
 export type BirthdayStatus =
@@ -85,10 +83,10 @@ export interface Customer {
   email: string;
   birthday: string | null;
   unique_code: string;
-  birthday_status: BirthdayStatus | null;
+  birthday_status: BirthdayStatus;
   created_at: string;
   last_contacted_at: string | null;
-  Is_Gift_Used: string | null; // Mantido conforme schema, mas usaremos birthday_status
+  Is_Gift_Used: string | null;
   whatsapp_chat_id: number | null;
 }
 
@@ -96,4 +94,28 @@ export interface CustomerDetails {
   totalOrders: number;
   totalSpent: number;
   favoriteDays: string[];
+}
+
+export type BadgeVariant =
+  | "default"
+  | "secondary"
+  | "destructive"
+  | "outline"
+  | "success"
+  | "warning";
+
+export interface SalesByCategory {
+  category: string;
+  total_sales: number;
+  total_quantity: number;
+}
+
+export interface SalesByProduct {
+  product_name: string;
+  total_sales: number;
+}
+
+export interface SalesByCustomer {
+  customer_name: string;
+  total_sales: number;
 }

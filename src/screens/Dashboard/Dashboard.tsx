@@ -16,22 +16,28 @@ import {
 import {
   getDashboardStats,
   getSalesByCategory,
-  getActiveCustomers,
-  getRevenueGrowth,
 } from "../../services/dashboardService";
 import { getOrders } from "../../services/orderService";
-import { Order, DashboardStats } from "../../types";
+import { Order, DashboardStats, OrderStatus } from "../../types";
+import { DashboardSkeleton } from "../../components/ui/skeleton";
+
+// Definindo o tipo para os pedidos recentes, conforme esperado pelo componente
+type RecentOrder = {
+  order_id: string;
+  customer_name: string;
+  total_amount: number;
+  status: OrderStatus;
+  created_at: string;
+};
 
 export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
   onTabChange,
 }) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [salesByCategory, setSalesByCategory] = useState<SalesByCategoryData[]>(
     []
   );
-  const [activeCustomers, setActiveCustomers] = useState<number>(0);
-  const [revenueGrowth, setRevenueGrowth] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,32 +46,28 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
       setIsLoading(true);
       setError(null);
       try {
-        console.log("Dashboard: Iniciando carregamento de dados...");
-
-        const [statsData, ordersData, salesData, customersData, growthData] =
-          await Promise.all([
-            getDashboardStats(),
-            getOrders(),
-            getSalesByCategory(),
-            getActiveCustomers(),
-            getRevenueGrowth(),
-          ]);
-
-        console.log("Dashboard: Dados recebidos:");
-        console.log("- Stats:", statsData);
-        console.log("- Orders:", ordersData);
-        console.log("- Sales by Category:", salesData);
-        console.log("- Active Customers:", customersData);
-        console.log("- Revenue Growth:", growthData);
+        const [statsData, ordersData, salesData] = await Promise.all([
+          getDashboardStats(),
+          getOrders(),
+          getSalesByCategory(),
+        ]);
 
         setStats(statsData);
-        setOrders(ordersData);
+
+        // Mapeia os dados dos pedidos para o formato esperado pelo componente RecentOrders
+        const formattedOrders = ordersData.slice(0, 5).map((order: Order) => ({
+          order_id: order.order_id,
+          customer_name: order.customerName || "Cliente Anônimo",
+          total_amount: order.total_amount,
+          status: order.status,
+          created_at: order.created_at,
+        }));
+        setRecentOrders(formattedOrders);
+
         setSalesByCategory(salesData);
-        setActiveCustomers(customersData);
-        setRevenueGrowth(growthData);
       } catch (err: any) {
         console.error("Dashboard: Falha ao buscar dados:", err);
-        setError(`Erro ao carregar dados: ${err.message}`);
+        setError(`Erro ao carregar dados do dashboard: ${err.message}`);
       } finally {
         setIsLoading(false);
       }
@@ -75,21 +77,28 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="p-4 md:p-6">
-        <div className="text-center text-gray-500">
-          Carregando dados do dashboard...
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {
     return (
       <div className="p-4 md:p-6">
-        <div className="text-center text-red-500 bg-red-50 p-4 rounded-lg">
-          <p className="font-bold">Ocorreu um erro:</p>
-          <p>{error}</p>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center bg-red-50 border border-red-200 p-6 rounded-xl">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShoppingBag className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-red-900 mb-2">
+              Erro ao Carregar Dashboard
+            </h3>
+            <p className="text-red-700 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            >
+              Tentar Novamente
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -104,48 +113,37 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
           </p>
         </div>
 
-        {/* Stats Cards - Mobile First */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
           <StatsCard
             title="Pedidos Hoje"
-            value={stats?.totalOrders ?? 0}
+            value={stats?.ordersToday ?? 0}
             icon={ShoppingBag}
-            color="bg-blue-500"
           />
           <StatsCard
             title="Receita Hoje"
-            value={`R$ ${(stats?.revenue ?? 0).toFixed(2)}`}
+            value={`R$ ${(stats?.revenueToday ?? 0).toFixed(2)}`}
             icon={DollarSign}
-            color="bg-green-500"
           />
           <StatsCard
             title="Pedidos Ativos"
             value={stats?.activeOrders ?? 0}
             icon={Clock}
-            color="bg-orange-500"
           />
           <StatsCard
             title="Taxa de Conclusão"
-            value={`${(
-              ((stats?.completedOrders ?? 0) / (stats?.totalOrders ?? 1)) *
-              100
-            ).toFixed(0)}%`}
+            value={`${(stats?.completionRate ?? 0).toFixed(0)}%`}
             icon={CheckCircle}
-            color="bg-purple-500"
           />
         </div>
 
-        {/* Main Content Area - Mobile First */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Orders on the left for larger screens */}
           <div className="lg:col-span-2">
             <RecentOrders
-              orders={orders.slice(0, 5)}
+              orders={recentOrders}
               onViewAllClick={() => onTabChange("orders")}
             />
           </div>
 
-          {/* Quick Stats and Sales by Category on the right */}
           <div className="space-y-6">
             <SalesByCategoryChart
               data={salesByCategory}
@@ -166,16 +164,18 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
                       <p className="text-sm font-medium text-gray-900">
                         Crescimento
                       </p>
-                      <p className="text-xs text-gray-500">vs. 7 dias antes</p>
+                      <p className="text-xs text-gray-500">vs. 7 dias atrás</p>
                     </div>
                   </div>
                   <span
                     className={`text-base md:text-lg font-bold ${
-                      revenueGrowth >= 0 ? "text-green-600" : "text-red-600"
+                      (stats?.revenueGrowth ?? 0) >= 0
+                        ? "text-green-600"
+                        : "text-red-600"
                     }`}
                   >
-                    {revenueGrowth >= 0 ? "+" : ""}
-                    {revenueGrowth.toFixed(1)}%
+                    {(stats?.revenueGrowth ?? 0) >= 0 ? "+" : ""}
+                    {(stats?.revenueGrowth ?? 0).toFixed(1)}%
                   </span>
                 </div>
 
@@ -192,7 +192,7 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
                     </div>
                   </div>
                   <span className="text-base md:text-lg font-bold text-gray-900">
-                    {activeCustomers}
+                    {stats?.activeCustomers30d ?? 0}
                   </span>
                 </div>
               </div>

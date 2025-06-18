@@ -3,10 +3,7 @@ import { Customer, BirthdayStatus } from "../types";
 import { getOrdersByCustomer } from "./orderService";
 
 export const getCustomers = async (): Promise<Customer[]> => {
-  const { data, error } = await supabase
-    .from("customers")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("customers").select("*");
 
   if (error) {
     console.error("Error fetching customers:", error);
@@ -18,10 +15,10 @@ export const getCustomers = async (): Promise<Customer[]> => {
 
 export const createCustomer = async (
   customer: Omit<Customer, "customer_id" | "created_at">
-) => {
+): Promise<Customer> => {
   const { data, error } = await supabase
     .from("customers")
-    .insert([customer])
+    .insert(customer)
     .select()
     .single();
 
@@ -36,7 +33,7 @@ export const createCustomer = async (
 export const updateCustomerBirthdayStatus = async (
   customerId: string,
   status: BirthdayStatus
-) => {
+): Promise<Customer> => {
   const { data, error } = await supabase
     .from("customers")
     .update({ birthday_status: status })
@@ -61,20 +58,20 @@ export const getCustomerByWhatsapp = async (
     .eq("whatsapp", whatsapp)
     .single();
 
-  if (error && error.code !== "PGRST116") {
+  if (error) {
+    if (error.code === "PGRST116") {
+      // No rows found
+      return null;
+    }
     console.error("Error fetching customer by WhatsApp:", error);
     throw error;
   }
 
-  return data || null;
+  return data;
 };
 
-export const getBirthdayCustomers = async () => {
-  const { data, error } = await supabase
-    .from("customers")
-    .select("*")
-    .not("birthday", "is", null)
-    .order("birthday", { ascending: true });
+export const getBirthdayCustomers = async (): Promise<Customer[]> => {
+  const { data, error } = await supabase.rpc("get_birthday_customers");
 
   if (error) {
     console.error("Error fetching birthday customers:", error);
@@ -111,6 +108,27 @@ export const getCustomerDetails = async (customerId: string) => {
     totalSpent,
     favoriteDays,
   };
+};
+
+export const getCustomerById = async (
+  customerId: string
+): Promise<Customer | null> => {
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("customer_id", customerId)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      // No rows found
+      return null;
+    }
+    console.error("Error fetching customer by ID:", error);
+    throw error;
+  }
+
+  return data;
 };
 
 // Aliases para compatibilidade
