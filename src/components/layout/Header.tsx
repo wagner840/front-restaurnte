@@ -28,19 +28,30 @@ export const Header: React.FC<HeaderProps> = ({
     menuItems.find((item) => item.id === activeTab)?.label || "Dashboard";
 
   return (
-    <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-20 md:justify-end">
+    <header 
+      className="bg-white border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-20 md:justify-end"
+      role="banner"
+    >
       {/* Título da página visível em todas as telas */}
       <div className="flex items-center gap-3">
-        <h1 className="font-bold text-lg text-gray-900">{activeLabel}</h1>
+        <h1 
+          className="font-bold text-lg text-gray-900"
+          id="page-title"
+          aria-live="polite"
+        >
+          {activeLabel}
+        </h1>
       </div>
 
       {/* Botão de menu visível apenas em telas pequenas */}
       <button
         onClick={onMenuClick}
-        className="text-gray-600 hover:text-gray-900 md:hidden"
-        aria-label="Abrir menu"
+        className="text-gray-600 hover:text-gray-900 md:hidden accessible-button"
+        aria-label={`Abrir menu de navegação. Página atual: ${activeLabel}`}
+        aria-expanded="false"
+        aria-controls="sidebar-navigation"
       >
-        <Menu size={24} />
+        <Menu size={24} aria-hidden="true" />
       </button>
     </header>
   );

@@ -21,6 +21,7 @@ import {
 } from "../../services/dashboardService";
 import { getOrders } from "../../services/orderService";
 import { Order, DashboardStats } from "../../types";
+import { DashboardSkeleton } from "../../components/ui/skeleton";
 
 export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
   onTabChange,
@@ -65,7 +66,7 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
         setRevenueGrowth(growthData);
       } catch (err: any) {
         console.error("Dashboard: Falha ao buscar dados:", err);
-        setError(`Erro ao carregar dados: ${err.message}`);
+        setError(`Erro ao carregar dados do dashboard: ${err.message}`);
       } finally {
         setIsLoading(false);
       }
@@ -74,22 +75,31 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
     fetchData();
   }, []);
 
+  // Estado de carregamento com skeleton personalizado
   if (isLoading) {
-    return (
-      <div className="p-4 md:p-6">
-        <div className="text-center text-gray-500">
-          Carregando dados do dashboard...
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
+  // Estado de erro melhorado
   if (error) {
     return (
       <div className="p-4 md:p-6">
-        <div className="text-center text-red-500 bg-red-50 p-4 rounded-lg">
-          <p className="font-bold">Ocorreu um erro:</p>
-          <p>{error}</p>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center bg-red-50 border border-red-200 p-6 rounded-xl">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShoppingBag className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-red-900 mb-2">
+              Erro ao Carregar Dashboard
+            </h3>
+            <p className="text-red-700 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            >
+              Tentar Novamente
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -166,7 +176,7 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
                       <p className="text-sm font-medium text-gray-900">
                         Crescimento
                       </p>
-                      <p className="text-xs text-gray-500">vs. 7 dias antes</p>
+                      <p className="text-xs text-gray-500">vs. 7 dias atrás</p>
                     </div>
                   </div>
                   <span
