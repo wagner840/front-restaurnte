@@ -25,9 +25,8 @@ import { formatCurrency, formatDate } from "../../lib/utils";
 interface OrderDetailsModalProps {
   order: Order | null;
   isOpen: boolean;
-  menuItemsMap: Record<string, string>;
+
   onClose: () => void;
-  onUpdateStatus: (orderId: string, status: OrderStatus) => void;
 }
 
 const getStatusInfo = (status: OrderStatus) => {
@@ -54,27 +53,13 @@ const getStatusInfo = (status: OrderStatus) => {
 export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   order,
   isOpen,
-  menuItemsMap,
+
   onClose,
-  onUpdateStatus,
 }) => {
   if (!order) return null;
 
   const statusInfo = getStatusInfo(order.status);
   const StatusIcon = statusInfo.icon;
-
-  const nextStatusMap: Partial<Record<OrderStatus, OrderStatus>> = {
-    pending: "confirmed",
-    confirmed: "preparing",
-    preparing:
-      order.order_type === "delivery" ? "out_for_delivery" : "completed",
-    out_for_delivery: "delivered",
-    delivered: "completed",
-  };
-
-  const canUpdateStatus =
-    order.status !== "completed" && order.status !== "cancelled";
-  const nextOrderStatus = nextStatusMap[order.status];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -102,7 +87,13 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             <div className="grid gap-2 text-sm">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
-                <span>{order.customerName || "Cliente não identificado"}</span>
+                {order.customerName ? (
+                  <span>{order.customerName}</span>
+                ) : (
+                  <span className="text-muted-foreground">
+                    Cliente não identificado
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -122,20 +113,23 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           <div className="grid gap-2">
             <h3 className="font-semibold">Itens do Pedido</h3>
             <div className="grid gap-2">
-              {order.order_items.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between py-2 text-sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{item.quantity}x</span>
-                    <span>{item.name}</span>
+              {order.order_items.map((item, index) => {
+                const itemName = item.name || item.item_name || item.item;
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between py-2 text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{item.quantity}x</span>
+                      <span>{itemName}</span>
+                    </div>
+                    <span className="text-muted-foreground">
+                      {formatCurrency(item.price * item.quantity)}
+                    </span>
                   </div>
-                  <span className="text-muted-foreground">
-                    {formatCurrency(item.price * item.quantity)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
               <div className="flex items-center justify-between border-t pt-2 font-semibold">
                 <span>Total</span>
                 <span>{formatCurrency(order.total_amount)}</span>
@@ -148,13 +142,6 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>
-          {canUpdateStatus && nextOrderStatus && (
-            <Button
-              onClick={() => onUpdateStatus(order.order_id, nextOrderStatus!)}
-            >
-              Avançar para: {getStatusInfo(nextOrderStatus).text}
-            </Button>
-          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

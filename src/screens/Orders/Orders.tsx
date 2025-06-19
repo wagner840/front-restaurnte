@@ -1,11 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { OrderDetailsModal } from "../../components/orders/OrderDetailsModal";
 import { getOrders } from "../../services/orderService";
 import { Order, OrderStatus } from "../../types";
-import { useRealtimeOrders } from "../../hooks/useRealtimeOrders";
-import { Search } from "lucide-react";
+import { PlusCircle, Search } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -18,9 +17,8 @@ import {
 } from "../../components/ui/card";
 import { cn } from "../../lib/utils";
 import { OrderCard } from "../../components/orders/OrderCard";
-import { useMenuItems } from "../../hooks/useMenuItems";
-import { useUpdateOrderStatus } from "../../hooks/useUpdateOrderStatus";
 import { OrderCardSkeleton } from "../../components/orders/OrderCardSkeleton";
+import { CreateOrderModal } from "../../components/orders/CreateOrderModal";
 
 const statusMap: Record<
   OrderStatus,
@@ -42,14 +40,7 @@ export const Orders: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
-  const { data: menuItems = [] } = useMenuItems();
-  const menuItemsMap = useMemo(() => {
-    return menuItems.reduce((acc, item) => {
-      acc[item.id] = item.name;
-      return acc;
-    }, {} as Record<string, string>);
-  }, [menuItems]);
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
 
   const {
     data: orders = [],
@@ -58,11 +49,8 @@ export const Orders: React.FC = () => {
   } = useQuery({
     queryKey: ["orders"],
     queryFn: getOrders,
+    refetchInterval: 30000, // Atualiza a cada 30 segundos
   });
-
-  const updateOrderStatusMutation = useUpdateOrderStatus();
-
-  useRealtimeOrders();
 
   const filteredOrders = orders
     .filter((order) => {
@@ -77,14 +65,29 @@ export const Orders: React.FC = () => {
 
       return matchesType && matchesStatus && matchesSearch;
     })
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    .sort((a, b) => {
+      if (statusFilter === "all") {
+        const statusPriority: Record<OrderStatus, number> = {
+          pending: 1,
+          confirmed: 2,
+          preparing: 3,
+          out_for_delivery: 4,
+          delivered: 5,
+          completed: 6,
+          cancelled: 7,
+        };
 
-  const handleUpdateStatus = (orderId: string, newStatus: OrderStatus) => {
-    updateOrderStatusMutation.mutate({ orderId, newStatus });
-  };
+        if (statusPriority[a.status] < statusPriority[b.status]) {
+          return -1;
+        }
+        if (statusPriority[a.status] > statusPriority[b.status]) {
+          return 1;
+        }
+      }
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    });
 
   if (isError) {
     return (
@@ -104,7 +107,13 @@ export const Orders: React.FC = () => {
   return (
     <div className="space-y-2 p-2">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-h1">Pedidos</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-h1">Pedidos</h1>
+          <Button onClick={() => setCreateModalOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Criar Pedido
+          </Button>
+        </div>
         <div className="relative w-full md:w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -162,30 +171,39 @@ export const Orders: React.FC = () => {
                 Todos
               </Badge>
             </motion.div>
-            {Object.entries(statusMap).map(([status, { text }]) => (
-              <motion.div
-                key={status}
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              >
-                <Badge
-                  variant={statusFilter === status ? "default" : "outline"}
-                  className={cn(
-                    "cursor-pointer",
-                    statusFilter === status &&
-                      "bg-primary-vibrant text-primary-foreground hover:bg-primary-vibrant/90"
-                  )}
-                  onClick={() =>
-                    setStatusFilter(
-                      status === statusFilter ? "all" : (status as OrderStatus)
-                    )
-                  }
+            {Object.entries(statusMap)
+              .filter(([status]) => {
+                if (orderTypeFilter === "pickup") {
+                  return !["out_for_delivery", "delivered"].includes(status);
+                }
+                return true;
+              })
+              .map(([status, { text }]) => (
+                <motion.div
+                  key={status}
+                  whileHover={{ scale: 1.02, y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  {text}
-                </Badge>
-              </motion.div>
-            ))}
+                  <Badge
+                    variant={statusFilter === status ? "default" : "outline"}
+                    className={cn(
+                      "cursor-pointer",
+                      statusFilter === status &&
+                        "bg-primary-vibrant text-primary-foreground hover:bg-primary-vibrant/90"
+                    )}
+                    onClick={() =>
+                      setStatusFilter(
+                        status === statusFilter
+                          ? "all"
+                          : (status as OrderStatus)
+                      )
+                    }
+                  >
+                    {text}
+                  </Badge>
+                </motion.div>
+              ))}
           </div>
         </CardContent>
       </Card>
@@ -209,8 +227,6 @@ export const Orders: React.FC = () => {
                 >
                   <OrderCard
                     order={order}
-                    menuItemsMap={menuItemsMap}
-                    onUpdateStatus={handleUpdateStatus}
                     onClick={() => setSelectedOrder(order)}
                   />
                 </motion.div>
@@ -227,9 +243,11 @@ export const Orders: React.FC = () => {
       <OrderDetailsModal
         order={selectedOrder}
         isOpen={!!selectedOrder}
-        menuItemsMap={menuItemsMap}
         onClose={() => setSelectedOrder(null)}
-        onUpdateStatus={handleUpdateStatus}
+      />
+      <CreateOrderModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setCreateModalOpen(false)}
       />
     </div>
   );

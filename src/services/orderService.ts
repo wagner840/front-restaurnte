@@ -18,11 +18,30 @@ const formatOrderData = (order: any): Order => {
   const customer = order.customers;
   const delivery_address = order.addresses;
 
+  // Normaliza os itens do pedido para garantir consistência
+  const normalizedOrderItems = Array.isArray(order.order_items)
+    ? order.order_items.map((item: any) => ({
+        name:
+          item.menu_items?.name ||
+          item.name ||
+          item.item_name ||
+          item.item ||
+          "Item não especificado",
+        price:
+          typeof item.menu_items?.price === "number"
+            ? item.menu_items.price
+            : typeof item.price === "number"
+            ? item.price
+            : 0,
+        quantity: typeof item.quantity === "number" ? item.quantity : 1,
+      }))
+    : [];
+
   return {
     order_id: order.order_id,
     customer_id: order.customer_id || null,
     delivery_address_id: delivery_address?.address_id || null,
-    order_items: order.order_items,
+    order_items: normalizedOrderItems,
     order_type: order.order_type,
     status: order.status,
     subtotal_amount:
@@ -35,7 +54,7 @@ const formatOrderData = (order: any): Order => {
     pending_reminder_sent: order.pending_reminder_sent ?? false,
     created_at: order.created_at,
     last_updated_at: order.last_updated_at ?? order.created_at,
-    customerName: customer?.name || "Cliente Anônimo",
+    customerName: customer?.name || "Pedido #" + order.order_id.slice(-4),
   };
 };
 

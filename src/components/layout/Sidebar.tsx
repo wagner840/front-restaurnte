@@ -32,7 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   menuItems,
 }) => {
   // IDs das abas que devem ser desabilitadas
-  const disabledTabs = ["analytics", "settings"];
+  const disabledTabs: string[] = [];
 
   // Ref para o primeiro item focável na sidebar
   const firstFocusableRef = useRef<HTMLButtonElement>(null);

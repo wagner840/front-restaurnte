@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-import {
-  useSalesByCategory,
-  useSalesByProduct,
-  useSalesByCustomer,
-} from "../../hooks/useReportsData";
+import { useAllReportsData } from "../../hooks/useReportsData";
 import { SalesByCategoryChart } from "../../components/reports/SalesByCategoryChart";
 import { SalesByProductChart } from "../../components/reports/SalesByProductChart";
 import { SalesByCustomerChart } from "../../components/reports/SalesByCustomerChart";
@@ -14,6 +10,12 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import { FunnelChart } from "../../components/reports/FunnelChart";
+import { OrderTypeComparisonChart } from "../../components/reports/OrderTypeComparisonChart";
+import { StatusByTypeBarChart } from "../../components/reports/StatusByTypeBarChart";
+import { StatusTimeAreaChart } from "../../components/reports/StatusTimeAreaChart";
+import { Skeleton } from "../../components/ui/skeleton";
+import { Progress } from "../../components/ui/progress";
 
 const Reports: React.FC = () => {
   const getFirstDayOfMonth = () => {
@@ -33,20 +35,10 @@ const Reports: React.FC = () => {
   const [startDate, setStartDate] = useState(getFirstDayOfMonth());
   const [endDate, setEndDate] = useState(getLastDayOfMonth());
 
-  const { data: salesCategory, isLoading: loadingCategory } =
-    useSalesByCategory(startDate, endDate);
-  const { data: salesProduct, isLoading: loadingProduct } = useSalesByProduct(
+  const { data: reportsData, isLoading } = useAllReportsData(
     startDate,
     endDate
   );
-  const { data: salesCustomer, isLoading: loadingCustomer } =
-    useSalesByCustomer(startDate, endDate);
-  const salesByProductData = salesProduct
-    ? salesProduct.map((item) => ({
-        ...item,
-        product: (item as any).product_name,
-      }))
-    : [];
 
   return (
     <div className="p-6 space-y-6">
@@ -89,22 +81,73 @@ const Reports: React.FC = () => {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-        <SalesByCategoryChart
-          data={salesCategory || []}
-          isLoading={loadingCategory}
-        />
-        <SalesByProductChart
-          data={salesByProductData}
-          isLoading={loadingProduct}
-        />
-        <div className="lg:col-span-2">
-          <SalesByCustomerChart
-            data={salesCustomer || []}
-            isLoading={loadingCustomer}
-          />
+      {isLoading ? (
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 mt-8">
+          <div className="col-span-2 flex flex-col items-center justify-center gap-4 py-12">
+            <Progress
+              value={60}
+              className="w-1/2"
+              aria-label="Carregando gráficos"
+            />
+            <Skeleton className="w-full h-[300px]" />
+            <span className="text-muted-foreground">
+              Carregando relatórios...
+            </span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+            <SalesByCategoryChart
+              data={reportsData?.salesByCategory || []}
+              isLoading={isLoading}
+            />
+            <SalesByProductChart
+              data={reportsData?.salesByProduct || []}
+              isLoading={isLoading}
+            />
+            <div className="lg:col-span-2">
+              <SalesByCustomerChart
+                data={reportsData?.salesByCustomer || []}
+                isLoading={isLoading}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 mt-8">
+            <div aria-label="Funil de Conversão Delivery" tabIndex={0}>
+              <FunnelChart
+                title="Funil de Conversão - Delivery"
+                data={reportsData?.funnelDelivery || []}
+              />
+            </div>
+            <div aria-label="Funil de Conversão Retirada" tabIndex={0}>
+              <FunnelChart
+                title="Funil de Conversão - Retirada"
+                data={reportsData?.funnelRetirada || []}
+              />
+            </div>
+            <div aria-label="Comparativo Delivery vs Retirada" tabIndex={0}>
+              <OrderTypeComparisonChart
+                title="Comparativo de Pedidos Delivery vs Retirada"
+                data={reportsData?.orderTypeComparison || []}
+              />
+            </div>
+            <div aria-label="Pedidos por Status e Tipo" tabIndex={0}>
+              <StatusByTypeBarChart
+                title="Pedidos por Status e Tipo"
+                data={reportsData?.statusByTypeCounts || []}
+              />
+            </div>
+            <div aria-label="Tempo Médio por Status" tabIndex={0}>
+              <StatusTimeAreaChart
+                title="Tempo Médio em Minutos por Status (Delivery x Retirada)"
+                data={reportsData?.averageStatusTimeByType || []}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

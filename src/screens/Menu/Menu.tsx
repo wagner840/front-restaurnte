@@ -8,6 +8,25 @@ import { MenuItem } from "../../types";
 import { useMenuItems, useDeleteMenuItem } from "../../hooks/useMenuItems";
 import { Skeleton } from "../../components/ui/skeleton";
 
+const MenuSkeleton: React.FC = () => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+    {Array.from({ length: 10 }).map((_, index) => (
+      <div
+        key={index}
+        className="bg-white rounded-lg shadow-md overflow-hidden"
+      >
+        <Skeleton className="h-48 w-full" />
+        <div className="p-4">
+          <Skeleton className="h-4 w-1/3 mb-2" />
+          <Skeleton className="h-6 w-2/3 mb-2" />
+          <Skeleton className="h-10 w-full mb-4" />
+          <Skeleton className="h-8 w-1/2" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 export const Menu: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -55,39 +74,37 @@ export const Menu: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Cardápio</h1>
-          <p className="text-muted-foreground">
-            Gerencie os itens do seu cardápio
-          </p>
+          <h1 className="text-2xl font-bold text-gray-800">Cardápio</h1>
+          <p className="text-gray-600">Gerencie os itens do seu cardápio</p>
         </div>
-        <Button onClick={handleOpenModalForAdd}>
+        <Button
+          onClick={handleOpenModalForAdd}
+          className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
+        >
           <Plus size={20} className="mr-2" />
           Adicionar Item
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search
-            size={20}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-          />
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input
-            placeholder="Buscar itens..."
+            placeholder="Buscar por nome ou descrição..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 w-full"
           />
         </div>
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto md:min-w-[200px]"
+          className="h-10 px-3 text-sm border rounded-md bg-white w-full sm:w-auto"
         >
-          <option value="all">Todas as categorias</option>
+          <option value="all">Todas as Categorias</option>
           {categories.map((category) => (
             <option key={category} value={category}>
               {category}
@@ -96,38 +113,34 @@ export const Menu: React.FC = () => {
         </select>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className="h-64 w-full" />
-          ))}
-        </div>
-      ) : isError ? (
-        <div className="text-center py-12 text-destructive bg-destructive/10 p-4 rounded-lg">
-          <p className="font-semibold">Ocorreu um erro</p>
-          <p>Falha ao carregar o cardápio. Tente novamente mais tarde.</p>
-        </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-lg text-muted-foreground">
-            Nenhum item encontrado.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Tente ajustar sua busca ou filtros.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-          {filteredItems.map((item) => (
-            <MenuItemCard
-              key={item.id}
-              item={item}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
-      )}
+      <div>
+        {isLoading ? (
+          <MenuSkeleton />
+        ) : isError ? (
+          <div className="text-center py-12 text-red-600 bg-red-50 p-4 rounded-lg">
+            <p className="font-semibold">Ocorreu um erro</p>
+            <p>Falha ao carregar o cardápio. Tente novamente mais tarde.</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-lg">Nenhum item encontrado.</p>
+            <p className="text-sm text-gray-500">
+              Tente ajustar sua busca ou filtros.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {filteredItems.map((item) => (
+              <MenuItemCard
+                key={item.id}
+                item={item}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       <MenuItemFormModal
         isOpen={isModalOpen}

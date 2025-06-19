@@ -6,6 +6,12 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Bar,
+  LabelList,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
@@ -40,33 +46,29 @@ export const SalesByProductChart: React.FC<SalesByProductChartProps> = ({
   }
 
   return (
-    <Card>
+    <Card role="region" aria-label="Gráfico de vendas por produto">
       <CardHeader>
-        <CardTitle>Vendas por Produto</CardTitle>
+        <CardTitle
+          className="text-foreground"
+          style={{ color: "#222", fontWeight: 700 }}
+        >
+          Vendas por Produto
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              outerRadius={100}
-              fill="#8884d8"
-              dataKey="total_sales"
-              nameKey="product"
-            >
-              {data.map((_entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={COLORS[index % COLORS.length]}
-                />
-              ))}
-            </Pie>
+          <BarChart
+            data={data}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="product_name" />
+            <YAxis />
             <Tooltip />
-            <Legend />
-          </PieChart>
+            <Bar dataKey="total_sales" fill="#8884d8">
+              <LabelList dataKey="total_sales" position="top" />
+            </Bar>
+          </BarChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

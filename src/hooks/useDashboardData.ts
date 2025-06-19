@@ -1,101 +1,69 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
+import { Order, OrderStatus } from "../types";
 
 export interface DashboardData {
-  novosClientesHoje: number;
-  pedidosAbertos: number;
-  avaliacaoMedia: number;
-  topProduto: { nome: string; vendas: number } | null;
-  produtosMaisVendidos: Array<{ nome: string; vendas: number }>;
-  distribuicaoPedidos: Array<{ status: string; value: number }>;
-  ultimosPedidos: Array<{
-    order_id: string;
-    customerName: string;
-    total_amount: number;
-    status: string;
-    created_at: string;
-  }>;
+  orders_today: number;
+  revenue_today: number;
+  active_orders: number;
+  completion_rate: number;
+  revenue_growth: number;
+  active_customers_30d: number;
+  top_selling_products: Array<{ product_name: string; total_quantity: number }>;
+  average_status_times: Array<{ status: OrderStatus; avg_minutes: number }>;
+  recent_orders: Order[];
 }
 
 export const useDashboardData = () => {
   return useQuery<DashboardData>({
     queryKey: ["dashboardData"],
     queryFn: async () => {
-      // Novos clientes hoje
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const { count: novosClientesHoje } = await supabase
-        .from("customers")
-        .select("customer_id", { count: "exact", head: true })
-        .gte("created_at", today.toISOString());
-
-      // Pedidos em aberto
-      const { count: pedidosAbertos } = await supabase
-        .from("orders")
-        .select("order_id", { count: "exact", head: true })
-        .in("status", [
-          "pending",
-          "confirmed",
-          "preparing",
-          "out_for_delivery",
-        ]);
-
-      // Distribuição de pedidos por status
-      const { data: pedidosStatusData } = await supabase
-        .from("orders")
-        .select("status")
-        .neq("status", "completed");
-      const statusMap: Record<string, number> = {};
-      (pedidosStatusData || []).forEach((p) => {
-        statusMap[p.status] = (statusMap[p.status] || 0) + 1;
-      });
-      const distribuicaoPedidos = Object.entries(statusMap).map(
-        ([status, value]) => ({ status, value })
+      // 1. Chamar a função de estatísticas abrangentes
+      const { data: statsData, error: statsError } = await supabase.rpc(
+        "get_comprehensive_dashboard_stats"
       );
+      if (statsError) throw new Error(statsError.message);
+      const stats = statsData[0];
 
-      // Produtos mais vendidos (top 5)
-      const { data: salesData } = await supabase
-        .from("sales_report_view")
-        .select("category, created_at, sale_value");
-      // Agrupar por produto (categoria)
-      const produtoMap: Record<string, number> = {};
-      (salesData || []).forEach((s) => {
-        produtoMap[s.category] =
-          (produtoMap[s.category] || 0) + Number(s.sale_value);
-      });
-      const produtosMaisVendidos = Object.entries(produtoMap)
-        .map(([nome, vendas]) => ({ nome, vendas }))
-        .sort((a, b) => b.vendas - a.vendas)
-        .slice(0, 5);
-      const topProduto = produtosMaisVendidos[0] || null;
+      // 2. Chamar a função de produtos mais vendidos
+      const { data: topProductsData, error: topProductsError } =
+        await supabase.rpc("get_top_selling_products", { limit_count: 5 });
+      if (topProductsError) throw new Error(topProductsError.message);
 
-      // Avaliação média (mock, pois não há tabela de feedbacks)
-      const avaliacaoMedia = 4.7;
+      // 3. Chamar a função de tempo médio por status (TEMPORARIAMENTE DESATIVADO)
+      // const { data: avgTimesData, error: avgTimesError } = await supabase.rpc(
+      //   "get_average_status_time"
+      // );
+      // if (avgTimesError) throw new Error(avgTimesError.message);
+      const avgTimesData: any[] = []; // Retorna um array vazio enquanto a função não existe
 
-      // Últimos pedidos reais (5 mais recentes)
-      const { data: ultimosPedidosData } = await supabase
-        .from("orders")
-        .select(
-          `order_id, created_at, status, total_amount, customer:customers (name)`
-        )
-        .order("created_at", { ascending: false })
-        .limit(5);
-      const ultimosPedidos = (ultimosPedidosData || []).map((p) => ({
-        order_id: p.order_id,
-        customerName: p.customer?.name || "Cliente Anônimo",
-        total_amount: p.total_amount,
-        status: p.status,
-        created_at: p.created_at,
-      }));
+      // 4. Buscar os últimos pedidos
+      const { data: recentOrdersData, error: recentOrdersError } =
+        await supabase
+          .from("orders")
+          .select(`*, customer:customers (name)`)
+          .order("created_at", { ascending: false })
+          .limit(5);
+      if (recentOrdersError) throw new Error(recentOrdersError.message);
+
+      const recent_orders = (recentOrdersData || []).map((p) => {
+        const customer = Array.isArray(p.customer) ? p.customer[0] : p.customer;
+        return {
+          ...p,
+          customerName: customer?.name || "Cliente Anônimo",
+        };
+      }) as Order[];
 
       return {
-        novosClientesHoje: novosClientesHoje || 0,
-        pedidosAbertos: pedidosAbertos || 0,
-        avaliacaoMedia,
-        topProduto,
-        produtosMaisVendidos,
-        distribuicaoPedidos,
-        ultimosPedidos,
+        orders_today: stats.orders_today || 0,
+        revenue_today: stats.revenue_today || 0,
+        active_orders: stats.active_orders || 0,
+        completion_rate: stats.completion_rate || 0,
+        revenue_growth: stats.revenue_growth || 0,
+        active_customers_30d: stats.active_customers_30d || 0,
+        top_selling_products: topProductsData || [],
+        average_status_times: avgTimesData || [],
+        recent_orders,
       };
     },
   });

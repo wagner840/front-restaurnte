@@ -1,10 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { StatsCard } from "../../components/dashboard/StatsCard";
 import { RecentOrders } from "../../components/dashboard/RecentOrders";
-import {
-  SalesByCategoryChart,
-  SalesByCategoryData,
-} from "../../components/dashboard/SalesByCategoryChart";
 import {
   ShoppingBag,
   DollarSign,
@@ -13,68 +9,14 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import {
-  getDashboardStats,
-  getSalesByCategory,
-} from "../../services/dashboardService";
-import { getOrders } from "../../services/orderService";
-import { Order, DashboardStats, OrderStatus } from "../../types";
+import { useDashboardData } from "../../hooks/useDashboardData";
 import { DashboardSkeleton } from "../../components/ui/skeleton";
-
-// Definindo o tipo para os pedidos recentes, conforme esperado pelo componente
-type RecentOrder = {
-  order_id: string;
-  customer_name: string;
-  total_amount: number;
-  status: OrderStatus;
-  created_at: string;
-};
+import { TopSellingProducts } from "../../components/dashboard/TopSellingProducts";
 
 export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
   onTabChange,
 }) => {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
-  const [salesByCategory, setSalesByCategory] = useState<SalesByCategoryData[]>(
-    []
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const [statsData, ordersData, salesData] = await Promise.all([
-          getDashboardStats(),
-          getOrders(),
-          getSalesByCategory(),
-        ]);
-
-        setStats(statsData);
-
-        // Mapeia os dados dos pedidos para o formato esperado pelo componente RecentOrders
-        const formattedOrders = ordersData.slice(0, 5).map((order: Order) => ({
-          order_id: order.order_id,
-          customer_name: order.customerName || "Cliente Anônimo",
-          total_amount: order.total_amount,
-          status: order.status,
-          created_at: order.created_at,
-        }));
-        setRecentOrders(formattedOrders);
-
-        setSalesByCategory(salesData);
-      } catch (err: any) {
-        console.error("Dashboard: Falha ao buscar dados:", err);
-        setError(`Erro ao carregar dados do dashboard: ${err.message}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const { data, isLoading, error } = useDashboardData();
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -91,7 +33,7 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
             <h3 className="text-lg font-semibold text-red-900 mb-2">
               Erro ao Carregar Dashboard
             </h3>
-            <p className="text-red-700 mb-4">{error}</p>
+            <p className="text-red-700 mb-4">{error.message}</p>
             <button
               onClick={() => window.location.reload()}
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
@@ -116,22 +58,22 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
           <StatsCard
             title="Pedidos Hoje"
-            value={stats?.ordersToday ?? 0}
+            value={data?.orders_today ?? 0}
             icon={ShoppingBag}
           />
           <StatsCard
             title="Receita Hoje"
-            value={`R$ ${(stats?.revenueToday ?? 0).toFixed(2)}`}
+            value={`R$ ${(data?.revenue_today ?? 0).toFixed(2)}`}
             icon={DollarSign}
           />
           <StatsCard
             title="Pedidos Ativos"
-            value={stats?.activeOrders ?? 0}
+            value={data?.active_orders ?? 0}
             icon={Clock}
           />
           <StatsCard
             title="Taxa de Conclusão"
-            value={`${(stats?.completionRate ?? 0).toFixed(0)}%`}
+            value={`${(data?.completion_rate ?? 0).toFixed(0)}%`}
             icon={CheckCircle}
           />
         </div>
@@ -139,43 +81,43 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <RecentOrders
-              orders={recentOrders}
+              orders={data?.recent_orders || []}
+              averageStatusTimes={data?.average_status_times || []}
               onViewAllClick={() => onTabChange("orders")}
             />
           </div>
 
           <div className="space-y-6">
-            <SalesByCategoryChart
-              data={salesByCategory}
-              isLoading={isLoading}
-            />
+            <TopSellingProducts products={data?.top_selling_products || []} />
 
-            <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
-              <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-card rounded-xl border p-4 md:p-6">
+              <h3 className="text-base md:text-lg font-semibold text-foreground mb-4">
                 Estatísticas Rápidas
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <TrendingUp className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-foreground">
                         Crescimento
                       </p>
-                      <p className="text-xs text-gray-500">vs. 7 dias atrás</p>
+                      <p className="text-xs text-muted-foreground">
+                        vs. 7 dias atrás
+                      </p>
                     </div>
                   </div>
                   <span
                     className={`text-base md:text-lg font-bold ${
-                      (stats?.revenueGrowth ?? 0) >= 0
+                      (data?.revenue_growth ?? 0) >= 0
                         ? "text-green-600"
                         : "text-red-600"
                     }`}
                   >
-                    {(stats?.revenueGrowth ?? 0) >= 0 ? "+" : ""}
-                    {(stats?.revenueGrowth ?? 0).toFixed(1)}%
+                    {(data?.revenue_growth ?? 0) >= 0 ? "+" : ""}
+                    {(data?.revenue_growth ?? 0).toFixed(1)}%
                   </span>
                 </div>
 
@@ -185,14 +127,16 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
                       <Users className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-foreground">
                         Clientes Ativos
                       </p>
-                      <p className="text-xs text-gray-500">últimos 30 dias</p>
+                      <p className="text-xs text-muted-foreground">
+                        últimos 30 dias
+                      </p>
                     </div>
                   </div>
-                  <span className="text-base md:text-lg font-bold text-gray-900">
-                    {stats?.activeCustomers30d ?? 0}
+                  <span className="text-base md:text-lg font-bold text-foreground">
+                    {data?.active_customers_30d ?? 0}
                   </span>
                 </div>
               </div>

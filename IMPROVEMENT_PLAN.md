@@ -1,34 +1,60 @@
-# Plano de Melhorias Estratégicas de UX/UI e Performance
+# Plano de Melhorias Consolidado para o Dashboard
 
-**Visão Geral:** Este plano detalha a implementação de melhorias visuais e funcionais na tela de pedidos, ao mesmo tempo que estabelece uma base sólida para a escalabilidade, manutenibilidade e robustez do sistema a longo prazo.
-
----
-
-### Fase 1: Fundação Visual e Estrutural
-
-- **Objetivo:** Criar uma base de componentes sólida, implementar o Dark Mode e refinar a UI principal.
-- **Tarefas:**
-  1.  **Criar Componente `BaseCard` Reutilizável:** Desenvolver um componente genérico que encapsule os novos estilos (sombras, bordas, suporte a dark mode) para garantir consistência visual em todo o sistema.
-  2.  **Refatorar e Padronizar Ícones:** Padronizar os ícones de status para manter um padrão coeso.
-  3.  **Centralizar Cores no Tailwind:** Mover todas as cores de UI para `tailwind.config.js`, com variáveis para os modos claro e escuro.
-  4.  **Implementar Dark Mode Globalmente:** Aplicar as classes `dark:` em todos os componentes relevantes.
-- **Ponto de Atenção (Consistência):** Mapear outros cards no sistema (ex: `MenuItemCard`) para serem refatorados com o `BaseCard` em uma próxima etapa.
+Este plano visa aprimorar a experiência do usuário (UX), a interface (UI) e adicionar funcionalidades inteligentes para transformar o dashboard em uma ferramenta de gestão ainda mais poderosa e agradável de usar.
 
 ---
 
-### Fase 2: Fluidez, Feedback e Performance
+### **Fase 1: Refatoração da UI e UX — Cores, Animações e Feedback**
 
-- **Objetivo:** Melhorar a experiência de interação e garantir que a UI seja performática.
-- **Tarefas:**
-  1.  **Otimizar Animações e Microinterações:** Refinar as animações com `framer-motion` e adicionar feedback visual claro para ações do usuário.
-  2.  **Investigar e Implementar Virtualização da Lista:** Analisar a performance com um grande volume de pedidos e, se necessário, implementar a virtualização da lista para garantir a rolagem fluida.
-- **Ponto de Atenção (Débito Técnico):** Documentar a necessidade de mover a lógica de filtros para o backend no futuro, para lidar com o crescimento da base de dados.
+1.  **Correção de Cores e Contraste:**
+
+    - **Ação:** Substituir cores de texto fixas (`text-black`, `text-white`) no `OrderCard.tsx` por variáveis de `foreground` do Tailwind (ex: `text-status-pending-foreground`) para garantir legibilidade em ambos os temas, `light` e `dark`.
+
+2.  **Destaque Visual dos Pedidos:**
+
+    - **Ação:** Adicionar uma borda lateral colorida (`border-l-4`) ao `OrderCard`, cuja cor corresponderá ao status do pedido (ex: `border-l-yellow-500` para pendente), para identificação rápida.
+
+3.  **Animação para Pedidos Pendentes:**
+
+    - **Ação:** Criar e aplicar uma nova animação de `pulse` mais chamativa no `tailwind.config.cjs` para os cards de pedidos com status `pending`, tanto na tela de Pedidos quanto no dashboard principal.
+
+4.  **Implementação de Toasts e Notificações Sonoras:**
+    - **Ação:**
+      - Integrar o `shadcn-ui Toast` para dar feedback visual em ações (mudança de status, criação de item, etc.).
+      - Criar um hook `useNotificationSound` que escuta novos pedidos `pending` via Supabase Realtime e toca o som de `public/sounds/notification.mp3`.
 
 ---
 
-### Fase 3: Qualidade, Acessibilidade e Testes
+### **Fase 2: Reorganização da Interface e Configurações**
 
-- **Objetivo:** Garantir que a aplicação seja robusta, acessível e que as mudanças sejam validadas por testes.
-- **Tarefas:**
-  1.  **Garantir Acessibilidade (WCAG):** Assegurar foco visível, adicionar `aria-label` e validar o contraste de cores.
-  2.  **Atualizar Testes de Regressão Visual:** Criar e atualizar os testes com Playwright para capturar screenshots da tela nos modos claro e escuro, validando a nova UI e as animações.
+1.  **Mover o Controle de Tema:**
+
+    - **Ação:** Remover o botão de troca de tema do `Header.tsx` e centralizar essa funcionalidade exclusivamente no `Switch` já existente na página `Settings.tsx`.
+
+2.  **Adicionar Controle de Efeitos Sonoros:**
+    - **Ação:** Adicionar um novo `Switch` na página `Settings.tsx` para permitir que o usuário ative ou desative os efeitos sonoros. O estado será gerenciado globalmente.
+
+---
+
+### **Fase 3: Evolução Funcional e Inteligência de Negócio**
+
+1.  **Dashboard Inteligente (Insights Proativos):**
+
+    - **Alertas de Pedidos Atrasados:**
+      - **Ação:**
+        1.  **Nova Tabela:** Criar a tabela `order_status_history` (`history_id`, `order_id`, `status`, `changed_at`) para registrar cada mudança de status dos pedidos.
+        2.  **Trigger:** Criar um trigger na tabela `orders` que popula a `order_status_history` a cada atualização de status.
+        3.  **Função SQL:** Criar a função `get_average_status_time()` que calcula o tempo médio em cada etapa usando a nova tabela de histórico.
+        4.  **UI:** No frontend, comparar o tempo atual do pedido com a média e destacar visualmente os pedidos atrasados.
+    - **Gráfico de Horários de Pico:**
+      - **Ação:** Criar a função `get_sales_by_hour()` no Supabase e um novo componente de gráfico de barras no dashboard para exibir o volume de pedidos por hora.
+
+2.  **Enriquecimento das Páginas Atuais (Visão 360º):**
+
+    - **Histórico de Pedidos do Cliente:**
+      - **Ação:** Criar a função `get_orders_by_customer(customer_id)` e adicionar uma aba "Histórico" no modal de detalhes do cliente para listar suas compras passadas.
+    - **Indicador de Popularidade no Cardápio:**
+      - **Ação:** Usar a função existente `get_top_selling_products()` para adicionar um selo de "Mais Vendido" nos itens correspondentes na tela de cardápio.
+
+3.  **Automação de Marketing (Reativação de Clientes):**
+    - **Ação:** Criar a função `get_inactive_customers(days_inactive)` no Supabase. Configurar um workflow no n8n que usa essa função para encontrar clientes inativos e envia uma mensagem de reengajamento com um cupom via WhatsApp, usando a tabela `n8n_fila_mensagens`.

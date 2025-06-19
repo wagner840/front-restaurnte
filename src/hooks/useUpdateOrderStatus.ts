@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateOrderStatus } from "../services/orderService";
 import { Order, OrderStatus } from "../types";
-import { toast } from "sonner";
+import { useToast } from "./useToast";
 
 export const useUpdateOrderStatus = () => {
   const queryClient = useQueryClient();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   return useMutation<
     Order,
@@ -31,11 +32,14 @@ export const useUpdateOrderStatus = () => {
 
       return { previousOrders };
     },
+    onSuccess: () => {
+      showSuccessToast("Status do pedido atualizado com sucesso!");
+    },
     onError: (err, _variables, context) => {
       if (context?.previousOrders) {
         queryClient.setQueryData(["orders"], context.previousOrders);
       }
-      toast.error(`Falha ao atualizar status: ${err.message}`);
+      showErrorToast("Falha ao atualizar status", err.message);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });

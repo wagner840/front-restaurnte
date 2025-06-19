@@ -13,7 +13,9 @@ export interface MenuItem {
 // Tipo para os itens dentro do campo JSONB 'order_items'
 // Flexível para suportar diferentes estruturas do banco de dados
 export interface OrderItemJson {
-  name: string;
+  name?: string;
+  item_name?: string;
+  item?: string;
   price: number;
   quantity: number;
 }
@@ -91,9 +93,19 @@ export interface Customer {
 }
 
 export interface CustomerDetails {
+  customer: Customer;
   totalOrders: number;
   totalSpent: number;
+  averageTicket: number;
   favoriteDays: string[];
+  favoriteProducts: Array<{
+    product: string;
+    quantity: number;
+  }>;
+  favoriteHours: number[];
+  lastOrder: Order | null;
+  recentOrders: Order[];
+  orderFrequency: number; // Média de dias entre pedidos
 }
 
 export type BadgeVariant =

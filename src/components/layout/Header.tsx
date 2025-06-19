@@ -29,13 +29,13 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header
-      className="bg-white border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-20 md:justify-end"
+      className="bg-card border-b p-4 flex items-center justify-between sticky top-0 z-20"
       role="banner"
     >
       {/* Título da página visível em todas as telas */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <h1
-          className="font-bold text-lg text-gray-900"
+          className="font-bold text-lg text-foreground"
           id="page-title"
           aria-live="polite"
         >
@@ -43,16 +43,18 @@ export const Header: React.FC<HeaderProps> = ({
         </h1>
       </div>
 
-      {/* Botão de menu visível apenas em telas pequenas */}
-      <button
-        onClick={onMenuClick}
-        className="text-gray-600 hover:text-gray-900 md:hidden accessible-button"
-        aria-label={`Abrir menu de navegação. Página atual: ${activeLabel}`}
-        aria-expanded="false"
-        aria-controls="sidebar-navigation"
-      >
-        <Menu size={24} aria-hidden="true" />
-      </button>
+      <div className="flex items-center gap-4">
+        {/* Botão de menu visível apenas em telas pequenas */}
+        <button
+          onClick={onMenuClick}
+          className="text-foreground hover:text-primary md:hidden accessible-button"
+          aria-label={`Abrir menu de navegação. Página atual: ${activeLabel}`}
+          aria-expanded="false"
+          aria-controls="sidebar-navigation"
+        >
+          <Menu size={24} aria-hidden="true" />
+        </button>
+      </div>
     </header>
   );
 };

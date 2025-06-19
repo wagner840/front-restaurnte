@@ -9,7 +9,12 @@ interface SkeletonProps {
 export const Skeleton: React.FC<SkeletonProps> = ({ className, children }) => {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-gray-200", className)}
+      className={cn(
+        "animate-pulse rounded-lg",
+        "bg-muted/50",
+        "transition-all duration-200",
+        className
+      )}
       aria-label="Carregando..."
       role="status"
     >
@@ -21,7 +26,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({ className, children }) => {
 // Componente específico para cards de estatísticas
 export const StatsCardSkeleton: React.FC = () => {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border/50 p-6 shadow-sm transition-all duration-200">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-4 w-24" />
@@ -36,7 +41,7 @@ export const StatsCardSkeleton: React.FC = () => {
 // Componente específico para lista de pedidos
 export const OrderListSkeleton: React.FC = () => {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border/50 p-6 shadow-sm transition-all duration-200">
       <div className="space-y-4">
         <Skeleton className="h-6 w-48" />
         {Array.from({ length: 3 }).map((_, index) => (
@@ -48,7 +53,7 @@ export const OrderListSkeleton: React.FC = () => {
               </div>
               <Skeleton className="h-6 w-16 rounded-full" />
             </div>
-            {index < 2 && <div className="border-t border-gray-100" />}
+            {index < 2 && <div className="border-t border-border/50" />}
           </div>
         ))}
       </div>
@@ -59,7 +64,7 @@ export const OrderListSkeleton: React.FC = () => {
 // Componente específico para gráfico
 export const ChartSkeleton: React.FC = () => {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border/50 p-6 shadow-sm transition-all duration-200">
       <Skeleton className="h-6 w-36 mb-4" />
       <div className="space-y-3">
         {Array.from({ length: 4 }).map((_, index) => (
@@ -97,7 +102,7 @@ export const DashboardSkeleton: React.FC = () => {
           </div>
           <div className="space-y-6">
             <ChartSkeleton />
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-card rounded-xl border border-border/50 p-6 shadow-sm transition-all duration-200">
               <Skeleton className="h-6 w-40 mb-4" />
               <div className="space-y-4">
                 {Array.from({ length: 2 }).map((_, index) => (

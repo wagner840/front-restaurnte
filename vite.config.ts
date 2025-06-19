@@ -25,4 +25,16 @@ export default defineConfig({
       exclude: ["node_modules/", "src/setupTests.ts"],
     },
   },
+  assetsInclude: ["**/*.mp3"],
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+        },
+      },
+    },
+  },
 });

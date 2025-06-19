@@ -18,4 +18,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       "Access-Control-Allow-Origin": "*",
     },
   },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+    heartbeat: {
+      interval: 5000, // 5 segundos
+      timeout: 10000, // 10 segundos
+    },
+  },
 });
