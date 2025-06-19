@@ -1,0 +1,2 @@
+ALTER TABLE public.orders
+ADD COLUMN viewed_at TIMESTAMP WITH TIME ZONE;

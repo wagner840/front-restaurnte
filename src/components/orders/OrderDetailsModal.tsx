@@ -104,7 +104,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground" />
                 <span className="text-sm">
-                  {order.delivery_address_id || "Não informado"}
+                  {order.delivery_address
+                    ? `${order.delivery_address.street}, ${order.delivery_address.number} - ${order.delivery_address.neighborhood}`
+                    : "Não informado"}
                 </span>
               </div>
             </div>

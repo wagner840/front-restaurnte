@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,16 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 import { supabase } from "../../lib/supabaseClient";
-import { Customer, MenuItem, Order } from "../../types";
+import { Customer, MenuItem, Order, Address } from "../../types";
 import { formatCurrency } from "../../lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface CreateOrderModalProps {
   isOpen: boolean;
@@ -31,6 +38,16 @@ const fetchCustomers = async (searchTerm: string): Promise<Customer[]> => {
     .select("*")
     .or(`name.ilike.%${searchTerm}%,whatsapp.ilike.%${searchTerm}%`)
     .limit(10);
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+const fetchAddresses = async (customerId: string): Promise<Address[]> => {
+  if (!customerId) return [];
+  const { data, error } = await supabase
+    .from("addresses")
+    .select("*")
+    .eq("customer_id", customerId);
   if (error) throw new Error(error.message);
   return data || [];
 };
@@ -64,6 +81,9 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [cart, setCart] = useState<MenuItem[]>([]);
   const [orderType, setOrderType] = useState<"pickup" | "delivery">("pickup");
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    null
+  );
 
   const { data: customers } = useQuery({
     queryKey: ["customers", customerSearchTerm],
@@ -71,10 +91,27 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     enabled: customerSearchTerm.length > 2,
   });
 
+  const { data: addresses = [] } = useQuery({
+    queryKey: ["addresses", selectedCustomer?.customer_id],
+    queryFn: () => fetchAddresses(selectedCustomer!.customer_id),
+    enabled: !!selectedCustomer,
+  });
+
   const { data: menuItems = [] } = useQuery({
     queryKey: ["menuItems"],
     queryFn: fetchMenuItems,
   });
+
+  useEffect(() => {
+    if (selectedCustomer && addresses.length > 0) {
+      const defaultAddress = addresses.find((addr) => addr.is_default);
+      setSelectedAddressId(
+        defaultAddress?.address_id || addresses[0].address_id
+      );
+    } else {
+      setSelectedAddressId(null);
+    }
+  }, [selectedCustomer, addresses]);
 
   const createOrderMutation = useMutation({
     mutationFn: createOrder,
@@ -90,6 +127,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     setCustomerSearchTerm("");
     setCart([]);
     setOrderType("pickup");
+    setSelectedAddressId(null);
   };
 
   const handleAddToCart = (item: MenuItem) => {
@@ -121,7 +159,11 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const totalAmount = cart.reduce((sum, item) => sum + Number(item.price), 0);
 
   const handleSubmit = () => {
-    if (!selectedCustomer || cart.length === 0) {
+    if (
+      !selectedCustomer ||
+      cart.length === 0 ||
+      (orderType === "delivery" && !selectedAddressId)
+    ) {
       // Add user feedback here, e.g., a toast message
       return;
     }
@@ -140,7 +182,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       subtotal_amount: totalAmount,
       total_amount: totalAmount,
       order_items: orderItems,
-      delivery_address_id: null,
+      delivery_address_id: orderType === "delivery" ? selectedAddressId : null,
       pending_reminder_sent: false,
       shipping_cost: 0,
     };
@@ -229,6 +271,28 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 Delivery
               </Button>
             </div>
+            {orderType === "delivery" && selectedCustomer && (
+              <div>
+                <h4 className="text-md font-semibold mb-2">
+                  Endereço de Entrega
+                </h4>
+                <Select
+                  onValueChange={setSelectedAddressId}
+                  value={selectedAddressId || ""}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um endereço" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {addresses.map((addr) => (
+                      <SelectItem key={addr.address_id} value={addr.address_id}>
+                        {`${addr.street}, ${addr.number} - ${addr.neighborhood}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <ScrollArea className="h-full border rounded-md">
               {cartSummary.length === 0 ? (
                 <p className="p-4 text-muted-foreground">
@@ -277,6 +341,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             disabled={
               !selectedCustomer ||
               cart.length === 0 ||
+              (orderType === "delivery" && !selectedAddressId) ||
               createOrderMutation.isPending
             }
           >

@@ -41,6 +41,7 @@ const formatOrderData = (order: any): Order => {
     order_id: order.order_id,
     customer_id: order.customer_id || null,
     delivery_address_id: delivery_address?.address_id || null,
+    delivery_address: delivery_address,
     order_items: normalizedOrderItems,
     order_type: order.order_type,
     status: order.status,
@@ -55,6 +56,7 @@ const formatOrderData = (order: any): Order => {
     created_at: order.created_at,
     last_updated_at: order.last_updated_at ?? order.created_at,
     customerName: customer?.name || "Pedido #" + order.order_id.slice(-4),
+    viewed_at: order.viewed_at,
   };
 };
 

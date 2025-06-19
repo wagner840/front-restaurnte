@@ -42,9 +42,23 @@ export interface Order {
   pending_reminder_sent: boolean;
   created_at: string;
   last_updated_at: string;
+  viewed_at: string | null;
   customerName?: string;
+  delivery_address?: Address | null;
 }
 
+export interface Address {
+  address_id: string;
+  customer_id: string;
+  street: string;
+  number: string;
+  complement: string | null;
+  neighborhood: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  is_default: boolean;
+}
 export interface OrderItem {
   id: string;
   order_id: string;

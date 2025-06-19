@@ -22,7 +22,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +30,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "../ui/dropdown-menu";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "../../lib/supabaseClient";
 
 interface OrderCardProps {
   order: Order;
@@ -110,9 +111,35 @@ const allowedStatusTransitions: {
   delivered: { delivery: ["completed"] },
 };
 
+const markAsViewed = async (orderId: string) => {
+  const { error } = await supabase
+    .from("orders")
+    .update({ viewed_at: new Date().toISOString() })
+    .eq("order_id", orderId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+};
+
 export const OrderCard: React.FC<OrderCardProps> = ({ order, onClick }) => {
+  const queryClient = useQueryClient();
   const status = statusConfig[order.status];
   const { mutate: updateStatus, isPending } = useUpdateOrderStatus();
+
+  const markAsViewedMutation = useMutation({
+    mutationFn: markAsViewed,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pendingOrdersCount"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
+  const handleMouseEnter = () => {
+    if (order.status === "pending" && !order.viewed_at) {
+      markAsViewedMutation.mutate(order.order_id);
+    }
+  };
 
   const handleStatusChange = (newStatus: OrderStatus) => {
     if (isPending) return;
@@ -154,6 +181,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onClick }) => {
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
       whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+      onMouseEnter={handleMouseEnter}
       className={cn(
         "group relative rounded-lg border p-4 min-h-[220px]", // Added min-h to prevent collapse
         "bg-card text-card-foreground shadow-transition",

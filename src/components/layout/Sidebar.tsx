@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { LogOut, X } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { usePendingOrders } from "../../hooks/usePendingOrders";
+import { Badge } from "../ui/badge";
 
 // Definindo a interface para um item de menu.
 interface MenuItem {
@@ -31,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   menuItems,
 }) => {
+  const { data: pendingOrdersCount } = usePendingOrders();
   // IDs das abas que devem ser desabilitadas
   const disabledTabs: string[] = [];
 
@@ -190,7 +193,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     aria-current={isActive ? "page" : undefined}
                     aria-disabled={isDisabled}
                     className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200",
+                      "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200",
                       "sidebar-nav accessible-button",
                       isActive
                         ? "bg-orange-50 text-orange-600 font-semibold"
@@ -200,8 +203,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         : "hover:bg-gray-50 hover:text-gray-900 focus-visible:bg-gray-50"
                     )}
                   >
-                    <Icon size={20} aria-hidden="true" />
-                    <span className="font-medium">{item.label}</span>
+                    <div className="flex items-center gap-3">
+                      <Icon size={20} aria-hidden="true" />
+                      <span className="font-medium">{item.label}</span>
+                    </div>
+                    {item.id === "orders" &&
+                      typeof pendingOrdersCount === "number" &&
+                      pendingOrdersCount > 0 && (
+                        <Badge variant="destructive" className="animate-pulse">
+                          {pendingOrdersCount}
+                        </Badge>
+                      )}
                     {isDisabled && (
                       <span className="sr-only">(em desenvolvimento)</span>
                     )}
