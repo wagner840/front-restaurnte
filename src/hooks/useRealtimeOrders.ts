@@ -10,13 +10,17 @@ export function useRealtimeOrders() {
   useEffect(() => {
     if (!user) return;
 
-    const channel = subscribeToOrders(user.id, (payload) => {
+    const channel = subscribeToOrders(user.id, async (payload) => {
       const { eventType, new: newOrder } = payload;
 
       if (eventType === "INSERT" && newOrder.status === "pending") {
-        showPendingOrderToast(
-          newOrder.customerName || "Cliente não identificado"
-        );
+        try {
+          await showPendingOrderToast(
+            newOrder.customerName || "Cliente não identificado"
+          );
+        } catch (error) {
+          console.error('Erro ao mostrar toast de pedido pendente:', error);
+        }
       }
     });
 

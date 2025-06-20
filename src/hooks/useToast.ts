@@ -11,14 +11,21 @@ export function useToast() {
   const { soundEnabled } = useTheme();
 
   const showToast = useCallback(
-    (
+    async (
       title: string,
       description?: string,
       variant: "default" | "success" | "warning" | "destructive" = "default",
       options: ToastOptions = { playSound: false }
     ) => {
       if (options.playSound && soundEnabled) {
-        playNotificationSound();
+        try {
+          const soundPlayed = await playNotificationSound();
+          if (!soundPlayed) {
+            console.warn('Som de notificação não pôde ser reproduzido');
+          }
+        } catch (error) {
+          console.error('Erro ao tentar reproduzir som:', error);
+        }
       }
 
       const toastAction = {
@@ -37,8 +44,8 @@ export function useToast() {
   );
 
   const showPendingOrderToast = useCallback(
-    (customerName: string) => {
-      showToast(
+    async (customerName: string) => {
+      await showToast(
         "Novo Pedido Pendente!",
         `${customerName || "Cliente não identificado"} fez um novo pedido.`,
         "warning",
@@ -49,22 +56,22 @@ export function useToast() {
   );
 
   const showSuccessToast = useCallback(
-    (message: string, description?: string) => {
-      showToast(message, description, "success");
+    async (message: string, description?: string) => {
+      await showToast(message, description, "success");
     },
     [showToast]
   );
 
   const showErrorToast = useCallback(
-    (message: string, description?: string) => {
-      showToast(message, description, "destructive");
+    async (message: string, description?: string) => {
+      await showToast(message, description, "destructive");
     },
     [showToast]
   );
 
   const showWarningToast = useCallback(
-    (message: string, description?: string) => {
-      showToast(message, description, "warning");
+    async (message: string, description?: string) => {
+      await showToast(message, description, "warning");
     },
     [showToast]
   );
