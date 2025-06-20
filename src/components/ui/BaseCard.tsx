@@ -1,16 +1,22 @@
 import React from "react";
 import { cn } from "../../lib/utils";
-import { motion, HTMLMotionProps } from "framer-motion";
+import { motion, HTMLMotionProps, AnimationProps } from "framer-motion";
 
-// Usando HTMLMotionProps, garantimos a compatibilidade com todas as props do framer-motion
-// e também com os atributos HTML padrão, já que o próprio tipo do framer-motion lida com os conflitos.
+// A interface combina as props de um elemento div padrão com as props de movimento do Framer.
+// Isso garante que possamos passar tanto atributos HTML padrão quanto propriedades de animação.
 interface BaseCardProps extends HTMLMotionProps<"div"> {
   children: React.ReactNode;
-  animate?: boolean;
+  isAnimated?: boolean; // Renomeado para clareza
 }
 
+const animatedProps: AnimationProps = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, ease: "easeOut" },
+};
+
 export const BaseCard = React.forwardRef<HTMLDivElement, BaseCardProps>(
-  ({ className, children, animate: isAnimated = false, ...props }, ref) => {
+  ({ className, children, isAnimated = false, ...props }, ref) => {
     const cardClasses = cn(
       "relative overflow-hidden",
       "bg-card text-card-foreground",
@@ -23,43 +29,18 @@ export const BaseCard = React.forwardRef<HTMLDivElement, BaseCardProps>(
       className
     );
 
-    if (isAnimated) {
-      return (
-        <motion.div
-          ref={ref}
-          className={cardClasses}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          {...props}
-        >
-          {children}
-        </motion.div>
-      );
-    }
-
-    // Para a versão não animada, removemos as props específicas do framer-motion
-    // para evitar que o React reclame de propriedades desconhecidas em um elemento div.
-    const {
-      initial,
-      animate,
-      exit,
-      variants,
-      transition,
-      whileHover,
-      whileTap,
-      whileFocus,
-      whileInView,
-      onAnimationStart,
-      onAnimationComplete,
-      onUpdate,
-      ...restProps
-    } = props;
-
+    // O motion.div é inteligente o suficiente para lidar com as props.
+    // Ele aplicará as props de animação e repassará as props de div padrão para o elemento DOM.
+    // Quando isAnimated for false, as props de animação não serão passadas.
     return (
-      <div ref={ref} className={cardClasses} {...restProps}>
+      <motion.div
+        ref={ref}
+        className={cardClasses}
+        {...(isAnimated ? animatedProps : {})}
+        {...props}
+      >
         {children}
-      </div>
+      </motion.div>
     );
   }
 );
