@@ -1,15 +1,16 @@
 import React from "react";
 import { cn } from "../../lib/utils";
-import { motion } from "framer-motion";
+import { motion, HTMLMotionProps } from "framer-motion";
 
-// O Card original usa React.HTMLAttributes<HTMLDivElement>, então vamos estender isso.
-interface BaseCardProps extends React.HTMLAttributes<HTMLDivElement> {
+// Usando HTMLMotionProps, garantimos a compatibilidade com todas as props do framer-motion
+// e também com os atributos HTML padrão, já que o próprio tipo do framer-motion lida com os conflitos.
+interface BaseCardProps extends HTMLMotionProps<"div"> {
   children: React.ReactNode;
   animate?: boolean;
 }
 
 export const BaseCard = React.forwardRef<HTMLDivElement, BaseCardProps>(
-  ({ className, children, animate = false, ...props }, ref) => {
+  ({ className, children, animate: isAnimated = false, ...props }, ref) => {
     const cardClasses = cn(
       "relative overflow-hidden",
       "bg-card text-card-foreground",
@@ -22,10 +23,10 @@ export const BaseCard = React.forwardRef<HTMLDivElement, BaseCardProps>(
       className
     );
 
-    if (animate) {
+    if (isAnimated) {
       return (
         <motion.div
-          ref={ref as React.Ref<HTMLDivElement>}
+          ref={ref}
           className={cardClasses}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -37,8 +38,26 @@ export const BaseCard = React.forwardRef<HTMLDivElement, BaseCardProps>(
       );
     }
 
+    // Para a versão não animada, removemos as props específicas do framer-motion
+    // para evitar que o React reclame de propriedades desconhecidas em um elemento div.
+    const {
+      initial,
+      animate,
+      exit,
+      variants,
+      transition,
+      whileHover,
+      whileTap,
+      whileFocus,
+      whileInView,
+      onAnimationStart,
+      onAnimationComplete,
+      onUpdate,
+      ...restProps
+    } = props;
+
     return (
-      <div ref={ref} className={cardClasses} {...props}>
+      <div ref={ref} className={cardClasses} {...restProps}>
         {children}
       </div>
     );
