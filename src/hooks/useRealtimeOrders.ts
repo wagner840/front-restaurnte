@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { useToast } from "./useToast";
 import { subscribeToOrders } from "../services/orderService";
 import { useAuth } from "./useAuth";
-import { playNotificationSound } from '../../lib/sounds';
-import { useTheme } from '../../contexts/ThemeContext';
+import { playNotificationSound } from '../lib/sounds';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function useRealtimeOrders() {
   const { showPendingOrderToast } = useToast();
