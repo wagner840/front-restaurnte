@@ -32,6 +32,9 @@ const formatOrderData = (order: OrderWithRelations): Order => {
   const customer = order.customers;
   const delivery_address = order.addresses;
 
+  // The flexible structure of OrderItemJson (name?, item_name?, item?) is handled here
+  // to ensure robustness against varied data from the DB. Ideally, the order_items
+  // JSON structure should be standardized and validated on the server-side.
   // Normaliza os itens do pedido para garantir consistência
   const normalizedOrderItems = Array.isArray(order.order_items)
     ? order.order_items.map((item: OrderItemFromDB) => ({
