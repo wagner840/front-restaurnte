@@ -1,4 +1,4 @@
-// Mantido para referência, mas não será mais usado diretamente nos pedidos
+// Represents an item on the restaurant's menu, used for menu management tasks.
 export interface MenuItem {
   id: string;
   name: string;

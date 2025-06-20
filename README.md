@@ -1,6 +1,6 @@
 # Restaurant Management System
 
-Um sistema moderno de gerenciamento de restaurantes construído com React, Next.js, Supabase e TailwindCSS.
+Um sistema moderno de gerenciamento de restaurantes construído com React, Vite, Supabase e TailwindCSS.
 
 ## Funcionalidades
 
@@ -12,65 +12,34 @@ Um sistema moderno de gerenciamento de restaurantes construído com React, Next.
 - 🔄 Atualizações em tempo real com Supabase
 - 📈 Gráficos e relatórios
 
-## Tecnologias
+## Tech Stack
 
 - React 18
-- Next.js 14
-- Supabase
-- TailwindCSS
-- Framer Motion
-- React Query
-- Radix UI
 - TypeScript
+- Vite
+- Supabase (PostgreSQL, Auth, Realtime)
+- TailwindCSS
+- React Query
+- Framer Motion
+- Radix UI / shadcn/ui
+- Lucide Icons
 
-## Pré-requisitos
+## Architecture Overview
 
-- Node.js 18+
-- Conta no Supabase
+- Single-Page Application (SPA) construída com React, TypeScript e Vite.
+- Backend e banco de dados fornecidos pelo Supabase (utilizando PostgreSQL, Autenticação e Realtime).
+- Estilização moderna e responsiva com TailwindCSS.
+- Gerenciamento de estado do servidor e cache otimizado com React Query.
 
-## Configuração
+## Core Functionalities
 
-1. Clone o repositório:
-
-```bash
-git clone https://github.com/seu-usuario/restaurant-management.git
-cd restaurant-management
-```
-
-2. Instale as dependências:
-
-```bash
-npm install
-```
-
-3. Configure as variáveis de ambiente:
-
-```bash
-cp .env.example .env.local
-```
-
-Edite o arquivo `.env.local` com suas credenciais do Supabase:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=sua-url-do-supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anonima-do-supabase
-```
-
-4. Inicie o servidor de desenvolvimento:
-
-```bash
-npm run dev
-```
-
-## Configuração do Sentry
-
-Crie (ou edite) o arquivo `.env.local` na raiz do projeto e adicione a seguinte linha:
-
-```
-VITE_SENTRY_DSN=https://344f557042f7113928cd433a1e162f8c@o4509517235814400.ingest.us.sentry.io/4509517275922432
-```
-
-Depois, siga para a integração no código fonte.
+- **Dashboard:** Apresenta métricas chave e um resumo visual das operações do restaurante em tempo real.
+- **Menu Management (Gerenciamento de Cardápio):** Permite a criação, edição, visualização e exclusão de itens do cardápio, incluindo detalhes como nome, preço, categoria e imagem.
+- **Order Management (Gerenciamento de Pedidos):** Facilita o acompanhamento de pedidos desde a criação até a entrega, com atualizações de status em tempo real e filtros para melhor organização.
+- **Customer Management (Gerenciamento de Clientes):** Cadastro e visualização de informações dos clientes, incluindo histórico de pedidos.
+- **Birthday Reminders (Lembretes de Aniversário):** Lista clientes aniversariantes para ações de relacionamento.
+- **Reports (Relatórios):** Oferece visualizações gráficas sobre vendas, itens populares e outras métricas de desempenho.
+- **Settings (Configurações):** Permite a personalização de aspectos do sistema e informações do restaurante.
 
 ## Estrutura do Projeto
 
@@ -105,42 +74,88 @@ restaurante-pro/
 └── package.json          # Lista de dependências e scripts do projeto.
 ```
 
-## Hooks Customizados
+## Pré-requisitos
 
-A refatoração introduziu diversos hooks customizados para encapsular lógica complexa, melhorar a reutilização e promover a separação de responsabilidades:
+- Node.js 18+
+- Conta no Supabase
 
-- **`useMediaQuery`**: Abstrai a lógica de detecção de tamanho de tela, permitindo a renderização condicional de componentes baseada em breakpoints (ex: desktop vs. mobile).
-- **`useAuth`**: Gerencia o estado de autenticação do usuário, interagindo com o Supabase para login, logout e verificação de sessão.
-- **`useCustomers`**: Responsável por buscar e gerenciar a lista completa de clientes.
-- **`useFilteredCustomers`**: Encapsula a lógica de filtragem e busca de clientes com base em termos de pesquisa, otimizando o desempenho com `useMemo`.
-- **`useFilteredOrders`**: Centraliza a lógica de filtragem e ordenação de pedidos, facilitando a manipulação dos dados na tela de Pedidos.
-- **`useMenuItems`**: Gerencia todas as operações (CRUD) relacionadas aos itens do cardápio, incluindo a lógica de feedback visual com `sonner`.
-- **`useReportsData`**: Abstrai a busca e o processamento de dados para os gráficos e relatórios.
+## Setup and Configuration
 
-## Componentes Reutilizáveis e Refatorados
+### Local Environment
 
-Foram criados novos componentes de UI genéricos e componentes existentes foram refatorados para melhor modularidade e manutenibilidade:
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/seu-usuario/restaurant-management.git
+   cd restaurant-management
+   ```
+2. Instale as dependências:
+   ```bash
+   npm install
+   ```
+3. Configure as variáveis de ambiente. Copie o arquivo de exemplo:
+   ```bash
+   cp .env.example .env.local
+   ```
+   Edite o arquivo `.env.local` com suas credenciais do Supabase:
+   ```env
+   VITE_SUPABASE_URL=sua-url-do-supabase
+   VITE_SUPABASE_ANON_KEY=sua-chave-anonima-do-supabase
+   ```
+4. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
 
-- **`PageHeader`**: Componente para cabeçalhos de página, aceitando título, descrição e botões de ação, utilizado em diversas telas como `Orders` e `Customers`.
-- **`ErrorDisplay`**: Componente padronizado para exibir mensagens de erro de forma clara e consistente.
-- **`LoadingSpinner`**: Indicador de carregamento genérico para fornecer feedback visual durante operações assíncronas.
-- **`CustomersTable`**: Componente dedicado à exibição da lista de clientes em formato de tabela (desktop).
-- **`CustomersListMobile`**: Componente para exibir a lista de clientes em formato de cards, otimizado para dispositivos móveis.
-- **`OrderCard`**: Componente principal para exibir detalhes de um pedido. Foi refatorado e agora é composto por:
-  - `OrderStatusBadge`: Exibe o status atual do pedido.
-  - `OrderTypeTooltip`: Informa o tipo de pedido.
-  - `OrderItemsList`: Lista os itens incluídos no pedido.
-  - `OrderStatusActions`: Contém os botões para alterar o status do pedido.
-- **`OrderFilters`**: Componente dedicado aos filtros na tela de Pedidos.
+### Sentry Configuration
 
-## Scripts Disponíveis
+Para habilitar o monitoramento de erros com o Sentry:
 
-- `npm run dev` - Inicia o servidor de desenvolvimento
-- `npm run build` - Cria a build de produção
-- `npm run start` - Inicia o servidor de produção
-- `npm run lint` - Executa o linter
+1.  Adicione sua chave DSN (Data Source Name) do Sentry ao arquivo `.env.local`:
+    ```env
+    VITE_SENTRY_DSN=sua-chave-dsn-do-sentry
+    ```
+2.  A função `initSentry()` é chamada em `src/index.tsx`, que automaticamente inicializará o Sentry se a variável `VITE_SENTRY_DSN` estiver configurada.
 
-## Contribuindo
+## Available Scripts
+
+- `npm run dev`: Inicia o servidor de desenvolvimento com Vite.
+- `npm run build`: Compila o projeto para produção.
+- `npm run lint`: Executa o ESLint para análise de código.
+- `npm run preview`: Inicia um servidor local para visualizar a build de produção.
+- `npm test`: (Configuração futura) Executa testes unitários e de integração.
+- `npm test:e2e`: Executa testes end-to-end com Playwright.
+
+## Docker Development
+
+Para facilitar a configuração do ambiente de desenvolvimento, o projeto inclui suporte a Docker.
+
+- **Dockerfile:** Define a imagem do contêiner para a aplicação React.
+- **docker-compose.yml:** Orquestra o serviço da aplicação.
+
+**Como usar:**
+
+1.  Certifique-se de que o Docker e o Docker Compose estão instalados.
+2.  Configure o arquivo `.env.local` conforme as instruções da seção "Local Environment". O Docker Compose utilizará este arquivo.
+3.  Execute o comando na raiz do projeto:
+    ```bash
+    docker-compose up --build
+    ```
+4.  A aplicação estará disponível em `http://localhost:5173` (ou a porta configurada no `docker-compose.yml`).
+
+## Security Considerations
+
+-   **Supabase Row Level Security (RLS):** É crucial para a segurança dos dados. A política padrão é `DENY ALL`. Todas as tabelas devem ter políticas RLS explícitas que concedem acesso (`GRANT`) apenas quando necessário. As políticas devem, sempre que possível, utilizar `auth.uid()` para verificar a identidade do usuário e `auth.role()` para verificar sua função, garantindo que os usuários acessem apenas os dados que lhes pertencem ou que têm permissão para visualizar/modificar.
+-   **Database Functions:** Ao definir funções no PostgreSQL (usadas via RPC pelo Supabase), especifique o contexto de segurança apropriado. Use `SECURITY DEFINER` com cautela, apenas quando a função precisar operar com privilégios elevados, e certifique-se de que a função é segura contra explorações. Prefira `SECURITY INVOKER` (padrão) para que a função execute com as permissões do usuário que a chamou.
+-   **Server-Side Data Validation:** Para entradas complexas, como a estrutura JSON de `order_items`, é altamente recomendável implementar validação no lado do servidor (ex: usando funções de banco de dados ou hooks do Supabase) para garantir a integridade e o formato correto dos dados antes da inserção ou atualização.
+
+## Testing
+
+-   **Current:** O projeto utiliza Playwright para testes End-to-End (E2E), localizados no diretório `tests/`. Esses testes simulam interações do usuário em um navegador real.
+-   **Future:** O objetivo é aumentar a cobertura de testes, implementando:
+    -   **Unit Tests (Testes Unitários):** Com Vitest (ou Jest), para validar a lógica de funções individuais, hooks e componentes de forma isolada.
+    -   **Integration Tests (Testes de Integração):** Com React Testing Library, para verificar a interação entre múltiplos componentes e a integração com serviços.
+
+## Contributing
 
 1. Faça um fork do projeto
 2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
@@ -148,6 +163,16 @@ Foram criados novos componentes de UI genéricos e componentes existentes foram 
 4. Faça push para a branch (`git push origin feature/nova-feature`)
 5. Abra um Pull Request
 
-## Licença
+## License
 
 MIT
+
+## Detailed Documentation
+
+Para informações mais aprofundadas sobre o projeto, consulte os seguintes documentos:
+
+-   [DOCUMENTACAO.md](DOCUMENTACAO.md) (Detailed Technical Documentation)
+-   [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md) (Consolidated Improvement Plan - Historical)
+-   [REFACTORING_PLAN.md](REFACTORING_PLAN.md) (Refactoring Plan - Historical)
+-   [COMPARATIVO_TECNICO_ANTES_DEPOIS.md](COMPARATIVO_TECNICO_ANTES_DEPOIS.md) (Technical Comparison Pre/Post UX Improvements - Historical)
+-   [RELATORIO_MELHORIAS_UX_IMPLEMENTADAS.md](RELATORIO_MELHORIAS_UX_IMPLEMENTADAS.md) (UX Improvements Report - Historical)
