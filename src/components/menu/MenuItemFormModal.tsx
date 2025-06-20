@@ -17,6 +17,7 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | "">("");
   const [category, setCategory] = useState("");
+  const [image, setImage] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   const createMenuItemMutation = useCreateMenuItem();
@@ -30,14 +31,16 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
     if (isOpen) {
       if (isEditMode && item) {
         setName(item.name);
-        setDescription(item.description);
+        setDescription(item.description ?? "");
         setPrice(item.price);
-        setCategory(item.category);
+        setCategory(item.category ?? "");
+        setImage(item.image);
       } else {
         setName("");
         setDescription("");
         setPrice("");
         setCategory("");
+        setImage(null);
       }
       setFormError(null);
     }
@@ -55,6 +58,7 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
       description,
       price: Number(price),
       category,
+      image,
       available: item?.available ?? true,
     };
 
@@ -162,6 +166,16 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
               placeholder="Categoria"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
+              className="w-full h-8 px-2 border rounded text-sm"
+            />
+          </div>
+          <div>
+            <input
+              id="image"
+              type="text"
+              placeholder="URL da Imagem (opcional)"
+              value={image ?? ""}
+              onChange={(e) => setImage(e.target.value)}
               className="w-full h-8 px-2 border rounded text-sm"
             />
           </div>

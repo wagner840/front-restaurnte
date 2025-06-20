@@ -1,6 +1,10 @@
 import { Toaster } from "sonner";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { initializeSounds } from "@/lib/sounds";
+
+interface LayoutProps {
+  children: React.ReactNode;
+}
 
 export function Layout({ children }: LayoutProps) {
   useEffect(() => {
