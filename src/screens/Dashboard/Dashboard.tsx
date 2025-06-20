@@ -28,9 +28,10 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
           <p className="text-gray-600 text-sm md:text-base">
             Bem-vindo de volta! Aqui está o resumo do seu restaurante hoje.
           </p>
@@ -69,7 +70,7 @@ export const Dashboard: React.FC<{ onTabChange: (tab: string) => void }> = ({
           </div>
 
           <div className="space-y-6">
-            <TopSellingProducts products={data?.top_selling_products || []} />
+            <TopSellingProducts />
             <QuickStats
               revenueGrowth={data?.revenue_growth ?? 0}
               activeCustomers={data?.active_customers_30d ?? 0}

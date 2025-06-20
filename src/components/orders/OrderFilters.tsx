@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import { cn } from "../../lib/utils";
+
 import { OrderStatus } from "../../types";
 import { statusConfig } from "../../services/orderLogicService";
 
@@ -44,10 +44,6 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
               <Button
                 variant={orderTypeFilter === type ? "default" : "outline"}
                 onClick={() => setOrderTypeFilter(type)}
-                className={cn({
-                  "bg-primary-vibrant hover:bg-primary-vibrant/90":
-                    orderTypeFilter === type,
-                })}
               >
                 {type === "all"
                   ? "Todos"
@@ -62,10 +58,7 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Badge
               variant={statusFilter === "all" ? "default" : "outline"}
-              className={cn("cursor-pointer", {
-                "bg-secondary-action hover:bg-secondary-action/90":
-                  statusFilter === "all",
-              })}
+              className="cursor-pointer"
               onClick={() => setStatusFilter("all")}
             >
               Todos
@@ -87,11 +80,7 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
               >
                 <Badge
                   variant={statusFilter === status ? "default" : "outline"}
-                  className={cn(
-                    "cursor-pointer",
-                    statusFilter === status &&
-                      "bg-primary-vibrant text-primary-foreground hover:bg-primary-vibrant/90"
-                  )}
+                  className="cursor-pointer"
                   onClick={() =>
                     setStatusFilter(
                       status === statusFilter ? "all" : (status as OrderStatus)

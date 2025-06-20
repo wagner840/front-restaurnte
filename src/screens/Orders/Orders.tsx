@@ -12,6 +12,7 @@ import { OrderCardSkeleton } from "../../components/orders/OrderCardSkeleton";
 import { CreateOrderModal } from "../../components/orders/CreateOrderModal";
 import { useFilteredOrders } from "../../hooks/useFilteredOrders";
 import { OrderFilters } from "../../components/orders/OrderFilters";
+import { useRealtimeOrders } from "../../hooks/useRealtimeOrders";
 
 export const Orders: React.FC = () => {
   const [orderTypeFilter, setOrderTypeFilter] = useState<
@@ -21,6 +22,8 @@ export const Orders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+
+  useRealtimeOrders();
 
   const {
     data: orders = [],
@@ -82,7 +85,7 @@ export const Orders: React.FC = () => {
         setStatusFilter={setStatusFilter}
       />
 
-      <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
+      <div style={{ columnWidth: "320px", columnGap: "0.75rem" }}>
         {isLoading ? (
           Array.from({ length: 6 }).map((_, index) => (
             <OrderCardSkeleton key={index} />
@@ -92,12 +95,13 @@ export const Orders: React.FC = () => {
             {filteredOrders.length > 0 ? (
               filteredOrders.map((order) => (
                 <motion.div
+                  style={{ breakInside: "avoid", marginBottom: "0.75rem" }}
                   key={order.order_id}
                   layout
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.3 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <OrderCard
                     order={order}
@@ -106,9 +110,13 @@ export const Orders: React.FC = () => {
                 </motion.div>
               ))
             ) : (
-              <div className="col-span-full text-center text-muted-foreground">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="col-span-full py-10 text-center text-muted-foreground"
+              >
                 Nenhum pedido encontrado com os filtros selecionados.
-              </div>
+              </motion.div>
             )}
           </AnimatePresence>
         )}

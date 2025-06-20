@@ -1,31 +1,3 @@
-@keyframes pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 hsl(var(--status-pending) / 0.7);
-  }
-  50% {
-    box-shadow: 0 0 0 8px hsl(var(--status-pending) / 0);
-  }
-}
-
-.animate-pulse-pending {
-  animation: pulse 3s infinite;
-}
-
-@keyframes scale-attention {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.0135);
-  }
-}
-
-.animate-scale-attention {
-  animation: scale-attention 3s ease-in-out infinite;
-}
-
 @keyframes slide-in {
   from {
     transform: translateX(-100%);

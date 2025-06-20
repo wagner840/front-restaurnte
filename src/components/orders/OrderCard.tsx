@@ -15,6 +15,7 @@ import { OrderStatusActions } from "./OrderStatusActions";
 interface OrderCardProps {
   order: Order;
   onClick?: () => void;
+  className?: string;
 }
 
 const markAsViewed = async (orderId: string) => {
@@ -28,7 +29,25 @@ const markAsViewed = async (orderId: string) => {
   }
 };
 
-export const OrderCard: React.FC<OrderCardProps> = ({ order, onClick }) => {
+const cardVariants = {
+  pulse: {
+    scale: [0.8, 1, 1.05],
+    transition: {
+      duration: 1.5,
+      ease: "easeInOut",
+      repeat: Infinity,
+    },
+  },
+  static: {
+    scale: 1,
+  },
+};
+
+export const OrderCard: React.FC<OrderCardProps> = ({
+  order,
+  onClick,
+  className,
+}) => {
   const queryClient = useQueryClient();
   const status = statusConfig[order.status];
   const { mutate: updateStatus, isPending } = useUpdateOrderStatus();
@@ -54,26 +73,23 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onClick }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+      variants={cardVariants}
+      animate={order.status === "pending" ? "pulse" : "static"}
       onMouseEnter={handleMouseEnter}
       className={cn(
-        "group relative rounded-lg border p-4 min-h-[220px]",
+        "group relative flex flex-col rounded-lg border p-4",
         "bg-card text-card-foreground shadow-transition",
         "hover:shadow-lg transition-all duration-300",
         "border-l-4",
         status.borderColor,
-        order.status === "pending" ? status.animation : "",
-        onClick && "cursor-pointer"
+        onClick && "cursor-pointer",
+        className
       )}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 space-y-3">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
+      <div className="flex flex-grow items-start justify-between gap-4">
+        <div className="flex flex-1 flex-col space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
             <OrderStatusBadge status={order.status} />
             <OrderTypeTooltip orderType={order.order_type} />
             <div className="flex items-center text-sm text-muted-foreground">
@@ -84,27 +100,23 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onClick }) => {
               })}
             </div>
           </div>
+          <div className="flex-grow space-y-3">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">
+                {order.customerName || "Cliente não identificado"}
+              </span>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">
-              {order.customerName || "Cliente não identificado"}
-            </span>
+            <OrderItemsList items={order.order_items} />
           </div>
 
-          <OrderItemsList items={order.order_items} />
-
-          <motion.div
-            initial={false}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center justify-between border-t pt-2"
-          >
+          <div className="mt-auto flex items-center justify-between border-t pt-2">
             <span className="text-sm font-medium">Total</span>
             <span className="text-lg font-bold">
               {formatCurrency(order.total_amount)}
             </span>
-          </motion.div>
+          </div>
         </div>
 
         <OrderStatusActions

@@ -8,8 +8,9 @@ import {
   DialogDescription,
 } from "../ui/dialog";
 import { Order, OrderStatus } from "../../types";
-import { Badge } from "../ui/badge";
+import { Badge, badgeVariants } from "../ui/badge";
 import { Button } from "../ui/button";
+import { VariantProps } from "class-variance-authority";
 import {
   User,
   MapPin,
@@ -29,7 +30,11 @@ interface OrderDetailsModalProps {
   onClose: () => void;
 }
 
-const getStatusInfo = (status: OrderStatus) => {
+type BadgeVariant = VariantProps<typeof badgeVariants>["variant"];
+
+const getStatusInfo = (
+  status: OrderStatus
+): { text: string; variant: BadgeVariant; icon: React.ElementType } => {
   switch (status) {
     case "pending":
       return { text: "Pendente", variant: "warning", icon: AlertCircle };
@@ -76,7 +81,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
         <div className="grid gap-6 py-4">
           <div className="flex items-center gap-2">
-            <Badge variant={statusInfo.variant as any}>{statusInfo.text}</Badge>
+            <Badge variant={statusInfo.variant}>{statusInfo.text}</Badge>
             <span className="text-sm text-muted-foreground">
               {formatDate(order.created_at)}
             </span>

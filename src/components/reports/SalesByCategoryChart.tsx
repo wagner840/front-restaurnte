@@ -16,7 +16,6 @@ import { Skeleton } from "../ui/skeleton";
 export interface SalesByCategoryData {
   category: string;
   total_sales: number;
-  total_quantity: number;
 }
 
 interface SalesByCategoryChartProps {
@@ -42,9 +41,6 @@ const CustomTooltip = ({
         <p className="font-semibold">{label}</p>
         <p className="text-sm text-muted-foreground">
           Vendas: {formatCurrency(payload[0].value as number)}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Quantidade: {payload[1].value}
         </p>
       </div>
     );
@@ -75,33 +71,28 @@ export const SalesByCategoryChart: React.FC<SalesByCategoryChartProps> = ({
         <CardTitle>Vendas por Categoria</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={350}>
           <BarChart
             data={data}
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="category" />
-            <YAxis yAxisId="left" />
-            <YAxis yAxisId="right" orientation="right" />
+            <YAxis tickFormatter={(value) => formatCurrency(value as number)} />
             <Tooltip content={<CustomTooltip />} />
-            <Legend />
+            <Legend formatter={() => "Vendas Totais"} />
             <Bar
-              yAxisId="left"
               dataKey="total_sales"
               name="Vendas"
               fill="hsl(var(--primary))"
               radius={[4, 4, 0, 0]}
             />
-            <Bar
-              yAxisId="right"
-              dataKey="total_quantity"
-              name="Quantidade"
-              fill="hsl(var(--secondary))"
-              radius={[4, 4, 0, 0]}
-            />
           </BarChart>
         </ResponsiveContainer>
+        <p className="text-sm text-muted-foreground mt-4 text-center">
+          Este gráfico mostra o total de vendas (R$) por categoria de produto no
+          período selecionado.
+        </p>
       </CardContent>
     </Card>
   );

@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabaseClient";
-import { Order } from "../types";
+import { Order, Customer, Address } from "../types";
 import { toast } from "sonner";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
@@ -14,13 +14,27 @@ const handleError = (error: unknown, message: string): never => {
 };
 
 // Função auxiliar para formatar dados do pedido
-const formatOrderData = (order: any): Order => {
+interface OrderItemFromDB {
+  menu_items?: { name: string; price: number };
+  name?: string;
+  item_name?: string;
+  item?: string;
+  price?: number;
+  quantity: number;
+}
+
+interface OrderWithRelations extends Order {
+  customers: Customer | null;
+  addresses: Address | null;
+}
+
+const formatOrderData = (order: OrderWithRelations): Order => {
   const customer = order.customers;
   const delivery_address = order.addresses;
 
   // Normaliza os itens do pedido para garantir consistência
   const normalizedOrderItems = Array.isArray(order.order_items)
-    ? order.order_items.map((item: any) => ({
+    ? order.order_items.map((item: OrderItemFromDB) => ({
         name:
           item.menu_items?.name ||
           item.name ||
@@ -183,7 +197,7 @@ export const getOrderDetails = async (orderId: string): Promise<Order> => {
 
 export const subscribeToOrders = (
   userId: string,
-  callback: (payload: RealtimePostgresChangesPayload<any>) => void
+  callback: (payload: RealtimePostgresChangesPayload<Order>) => void
 ) => {
   const channel = supabase
     .channel(`realtime:orders:user_id=${userId}`)
@@ -194,7 +208,5 @@ export const subscribeToOrders = (
     )
     .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+  return channel;
 };

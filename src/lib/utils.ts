@@ -19,5 +19,4 @@ export function formatDate(date: string | Date): string {
 
 export function initSentry(): void {
   // A inicialização do Sentry seria configurada aqui.
-  console.log("Sentry initialized.");
 }

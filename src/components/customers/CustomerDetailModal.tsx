@@ -9,8 +9,9 @@ import {
   DialogFooter,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
+import { Badge, badgeVariants } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { VariantProps } from "class-variance-authority";
 import {
   User,
   Phone,
@@ -20,16 +21,16 @@ import {
   Calendar,
   Gift,
   Loader2,
-  Clock,
-  Package,
-  TrendingUp,
   Star,
+  TrendingUp,
+  Clock,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateCustomerBirthdayStatus } from "../../services/customerService";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface Props {
   isOpen: boolean;
@@ -38,6 +39,25 @@ interface Props {
   details: CustomerDetails | null;
   isLoading: boolean;
 }
+
+type BadgeVariant = VariantProps<typeof badgeVariants>["variant"];
+
+const StatCard: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  className?: string;
+}> = ({ icon, label, value, className }) => (
+  <div
+    className={`flex items-center gap-3 rounded-lg border p-3 bg-accent/20 ${className}`}
+  >
+    {icon}
+    <div>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="font-bold text-lg">{value}</p>
+    </div>
+  </div>
+);
 
 export const CustomerDetailModal: React.FC<Props> = ({
   isOpen,
@@ -48,33 +68,6 @@ export const CustomerDetailModal: React.FC<Props> = ({
 }) => {
   const queryClient = useQueryClient();
 
-  const renderBirthdayStatusBadge = (status: Customer["birthday_status"]) => {
-    let variant: "success" | "warning" | "destructive" | "outline" = "outline";
-    let text = "Disponível";
-
-    switch (status) {
-      case "completed":
-        variant = "warning";
-        text = "Utilizado";
-        break;
-      case "eligible":
-      case "booked":
-      case "30d_sent":
-      case "15d_sent":
-        variant = "success";
-        text = "Disponível";
-        break;
-      case "declined":
-        variant = "destructive";
-        text = "Vencido";
-        break;
-      default:
-        text = status;
-    }
-
-    return <Badge variant={variant}>{text}</Badge>;
-  };
-
   const updateGiftStatusMutation = useMutation({
     mutationFn: ({
       customerId,
@@ -84,14 +77,14 @@ export const CustomerDetailModal: React.FC<Props> = ({
       status: "eligible" | "completed";
     }) => updateCustomerBirthdayStatus(customerId, status),
     onSuccess: () => {
-      toast.success("Status do brinde atualizado.");
+      toast.success("Status do brinde atualizado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({
         queryKey: ["customerDetails", customer?.customer_id],
       });
     },
-    onError: () => {
-      toast.error("Falha ao atualizar status do brinde.");
+    onError: (error) => {
+      toast.error(`Falha ao atualizar o status: ${error.message}`);
     },
   });
 
@@ -106,229 +99,212 @@ export const CustomerDetailModal: React.FC<Props> = ({
     });
   };
 
-  const container = {
+  const containerVariants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
+      transition: { staggerChildren: 0.07 },
     },
   };
 
-  const item = {
+  const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 },
   };
 
+  const renderBirthdayStatusBadge = (status: Customer["birthday_status"]) => {
+    const config: {
+      [key: string]: { variant: BadgeVariant; text: string };
+    } = {
+      completed: { variant: "warning", text: "Utilizado" },
+      eligible: { variant: "success", text: "Disponível" },
+      booked: { variant: "success", text: "Agendado" },
+      "30d_sent": { variant: "success", text: "Notificado" },
+      "15d_sent": { variant: "success", text: "Notificado" },
+      declined: { variant: "destructive", text: "Vencido" },
+    };
+    const { variant, text } = config[status] || {
+      variant: "outline",
+      text: status,
+    };
+    return <Badge variant={variant}>{text}</Badge>;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="w-full max-w-md md:max-w-2xl lg:max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-2xl">
-            <User className="h-6 w-6 text-primary" />
+          <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
+            <User className="h-7 w-7 text-primary" />
             {customer.name}
           </DialogTitle>
-          <DialogDescription className="text-base">
+          <DialogDescription>
             Cliente desde{" "}
             {new Date(customer.created_at).toLocaleDateString("pt-BR")}
           </DialogDescription>
         </DialogHeader>
-
-        <div className="py-4">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : details ? (
-            <motion.div
-              variants={container}
-              initial="hidden"
-              animate="show"
-              className="grid grid-cols-1 md:grid-cols-2 gap-6"
-            >
-              {/* Informações de Contato */}
-              <motion.div variants={item}>
-                <Card className="bg-card hover:bg-accent/5 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <User className="h-5 w-5 text-primary" />
-                      Informações de Contato
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-3 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>{customer.email || "Não informado"}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{customer.whatsapp}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Brinde de Aniversário */}
-              <motion.div variants={item}>
-                <Card className="bg-card hover:bg-accent/5 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Gift className="h-5 w-5 text-primary" />
-                      Brinde de Aniversário
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
+        <ScrollArea className="h-[70vh] w-full">
+          <div className="py-4 pr-6">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-80">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              </div>
+            ) : details ? (
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              >
+                {/* Coluna de Contato e Brinde */}
+                <motion.div
+                  variants={itemVariants}
+                  className="md:col-span-1 lg:col-span-1 space-y-6"
+                >
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Mail className="h-5 w-5 text-primary" /> Contato
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span>{customer.email || "Não informado"}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span>{customer.whatsapp}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Gift className="h-5 w-5 text-primary" /> Brinde
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
                         <span className="text-sm">
                           {customer.birthday
                             ? new Date(customer.birthday).toLocaleDateString(
                                 "pt-BR"
                               )
-                            : "Não informado"}
+                            : "N/A"}
                         </span>
+                        {renderBirthdayStatusBadge(customer.birthday_status)}
+                      </div>
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={handleToggleGiftStatus}
+                        disabled={updateGiftStatusMutation.isPending}
+                      >
+                        {updateGiftStatusMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
+                        {customer.birthday_status === "completed"
+                          ? "Reverter Uso"
+                          : "Marcar como Usado"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Coluna de Métricas e Insights */}
+                <motion.div
+                  variants={itemVariants}
+                  className="md:col-span-1 lg:col-span-2 space-y-6"
+                >
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <TrendingUp className="h-5 w-5 text-primary" /> Métricas
+                        Principais
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <StatCard
+                        icon={<ShoppingCart className="h-6 w-6 text-primary" />}
+                        label="Total de Pedidos"
+                        value={details.totalOrders}
+                      />
+                      <StatCard
+                        icon={<DollarSign className="h-6 w-6 text-primary" />}
+                        label="Total Gasto"
+                        value={formatCurrency(details.totalSpent)}
+                      />
+                      <StatCard
+                        icon={<TrendingUp className="h-6 w-6 text-primary" />}
+                        label="Ticket Médio"
+                        value={formatCurrency(details.averageTicket)}
+                      />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Clock className="h-5 w-5 text-primary" /> Insights de
+                        Compras
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm">Dia mais frequente:</span>
+                        <Badge
+                          variant="outline"
+                          className="text-foreground bg-primary-foreground"
+                        >
+                          {details.mostFrequentDay || "N/A"}
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-3">
-                        {renderBirthdayStatusBadge(customer.birthday_status)}
-                        <Button
-                          size="sm"
+                        <Clock className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm">Último pedido:</span>
+                        <Badge
                           variant="outline"
-                          onClick={handleToggleGiftStatus}
-                          disabled={updateGiftStatusMutation.isPending}
+                          className="text-foreground bg-primary-foreground"
                         >
-                          {customer.birthday_status === "completed"
-                            ? "Reverter"
-                            : "Utilizar"}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Resumo de Pedidos */}
-              <motion.div variants={item}>
-                <Card className="bg-card hover:bg-accent/5 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <ShoppingCart className="h-5 w-5 text-primary" />
-                      Resumo de Pedidos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3 rounded-lg border p-3">
-                        <Package className="h-5 w-5 text-primary" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            Total de Pedidos
-                          </p>
-                          <p className="font-bold">{details.totalOrders}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 rounded-lg border p-3">
-                        <DollarSign className="h-5 w-5 text-primary" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            Total Gasto
-                          </p>
-                          <p className="font-bold">
-                            {formatCurrency(details.totalSpent)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 rounded-lg border p-3">
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Ticket Médio
-                        </p>
-                        <p className="font-bold">
-                          {formatCurrency(details.averageTicket)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Produtos Favoritos */}
-              <motion.div variants={item}>
-                <Card className="bg-card hover:bg-accent/5 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Star className="h-5 w-5 text-primary" />
-                      Produtos Favoritos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {details.favoriteProducts.map(({ product, quantity }) => (
-                        <div
-                          key={product}
-                          className="flex items-center justify-between rounded-lg border p-2"
-                        >
-                          <span className="text-sm">{product}</span>
-                          <Badge variant="secondary">{quantity}x</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Horários Favoritos */}
-              <motion.div variants={item}>
-                <Card className="bg-card hover:bg-accent/5 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-primary" />
-                      Horários Preferidos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {details.favoriteHours.map((hour) => (
-                        <Badge key={hour} variant="secondary">
-                          {hour.toString().padStart(2, "0")}:00
+                          {details.lastOrderDate
+                            ? new Date(
+                                details.lastOrderDate
+                              ).toLocaleDateString("pt-BR")
+                            : "N/A"}
                         </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Star className="h-5 w-5 text-primary" /> Top Produtos
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {details.favoriteProducts.map((p, i) => (
+                          <li
+                            key={i}
+                            className="flex justify-between items-center text-sm"
+                          >
+                            <span>{p.product}</span>
+                            <Badge variant="outline">{p.quantity}x</Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </motion.div>
-
-              {/* Dias Favoritos */}
-              <motion.div variants={item}>
-                <Card className="bg-card hover:bg-accent/5 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      Dias Preferidos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {details.favoriteDays.map((day) => (
-                        <Badge key={day} variant="secondary">
-                          {day}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </motion.div>
-          ) : (
-            <div className="text-center text-destructive">
-              <p>Falha ao carregar detalhes do cliente.</p>
-            </div>
-          )}
-        </div>
-
+            ) : (
+              <div className="text-center text-destructive py-10">
+                <p>Falha ao carregar os detalhes do cliente.</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Fechar

@@ -32,7 +32,7 @@ export const QuickStats: React.FC<QuickStatsProps> = ({
             }`}
           >
             {revenueGrowth >= 0 ? "+" : ""}
-            {revenueGrowth.toFixed(1)}%
+            {`${revenueGrowth.toFixed(1)}%`}
           </span>
         </div>
 

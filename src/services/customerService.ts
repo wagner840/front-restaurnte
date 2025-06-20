@@ -1,13 +1,16 @@
 import { supabase } from "../lib/supabaseClient";
-import { Customer, BirthdayStatus } from "../types";
-import { getOrdersByCustomer } from "./orderService";
+import {
+  Customer,
+  BirthdayStatus,
+  CustomerAnalyticsData,
+  CustomerDetails,
+} from "../types";
 import { toast } from "sonner";
 
 export const getCustomers = async (): Promise<Customer[]> => {
   const { data, error } = await supabase.from("customers").select("*");
 
   if (error) {
-    console.error("Error fetching customers:", error);
     throw error;
   }
 
@@ -24,7 +27,6 @@ export const createCustomer = async (
     .single();
 
   if (error) {
-    console.error("Error creating customer:", error);
     throw error;
   }
 
@@ -43,7 +45,6 @@ export const updateCustomerBirthdayStatus = async (
     .single();
 
   if (error) {
-    console.error("Error updating customer birthday status:", error);
     throw error;
   }
 
@@ -61,10 +62,8 @@ export const getCustomerByWhatsapp = async (
 
   if (error) {
     if (error.code === "PGRST116") {
-      // No rows found
       return null;
     }
-    console.error("Error fetching customer by WhatsApp:", error);
     throw error;
   }
 
@@ -75,101 +74,44 @@ export const getBirthdayCustomers = async (): Promise<Customer[]> => {
   const { data, error } = await supabase.rpc("get_birthday_customers");
 
   if (error) {
-    console.error("Error fetching birthday customers:", error);
     throw error;
   }
 
   return data || [];
 };
 
-export const getCustomerDetails = async (customerId: string) => {
-  try {
-    // Busca os dados básicos do cliente
-    const { data: customerData, error: customerError } = await supabase
-      .from("customers")
-      .select("*")
-      .eq("customer_id", customerId)
-      .single();
+export const getCustomerDetails = async (
+  customerId: string
+): Promise<CustomerDetails> => {
+  if (!customerId) {
+    throw new Error("O ID do cliente é obrigatório.");
+  }
 
-    if (customerError) {
-      toast.error("Erro ao carregar dados do cliente");
-      throw customerError;
+  try {
+    const { data, error } = await supabase
+      .rpc("get_customer_analytics", { p_customer_id: customerId })
+      .single<CustomerAnalyticsData>();
+
+    if (error) {
+      toast.error("Falha ao carregar os detalhes do cliente.");
+      throw error;
     }
 
-    // Busca os pedidos do cliente
-    const orders = await getOrdersByCustomer(customerId);
+    if (!data) {
+      throw new Error("Nenhuma análise encontrada para este cliente.");
+    }
 
-    const totalOrders = orders.length;
-    const totalSpent = orders.reduce(
-      (sum, order) => sum + (order.total_amount || 0),
-      0
-    );
-
-    // Análise de dias favoritos
-    const dayCount: Record<string, number> = {};
-    orders.forEach((order) => {
-      const date = new Date(order.created_at);
-      const dayName = date.toLocaleDateString("pt-BR", { weekday: "long" });
-      dayCount[dayName] = (dayCount[dayName] || 0) + 1;
-    });
-
-    const favoriteDays = Object.entries(dayCount)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 3)
-      .map(([day]) => day);
-
-    // Análise de produtos favoritos
-    const productCount: Record<string, number> = {};
-    orders.forEach((order) => {
-      order.order_items.forEach((item) => {
-        const productName = item.name;
-        productCount[productName] =
-          (productCount[productName] || 0) + item.quantity;
-      });
-    });
-
-    const favoriteProducts = Object.entries(productCount)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 3)
-      .map(([product, quantity]) => ({ product, quantity }));
-
-    // Análise de horários favoritos
-    const hourCount: Record<number, number> = {};
-    orders.forEach((order) => {
-      const date = new Date(order.created_at);
-      const hour = date.getHours();
-      hourCount[hour] = (hourCount[hour] || 0) + 1;
-    });
-
-    const favoriteHours = Object.entries(hourCount)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 3)
-      .map(([hour]) => parseInt(hour));
-
-    // Calcula o ticket médio
-    const averageTicket = totalOrders > 0 ? totalSpent / totalOrders : 0;
-
-    // Retorna os dados completos
+    // Mapeia de snake_case (banco) para camelCase (frontend)
     return {
-      customer: customerData,
-      totalOrders,
-      totalSpent,
-      averageTicket,
-      favoriteDays,
-      favoriteProducts,
-      favoriteHours,
-      lastOrder: orders[0] || null,
-      recentOrders: orders.slice(0, 5),
-      orderFrequency:
-        totalOrders > 0
-          ? (Date.now() -
-              new Date(orders[orders.length - 1].created_at).getTime()) /
-            (totalOrders * 86400000)
-          : 0, // Média de dias entre pedidos
+      totalOrders: data.total_orders,
+      totalSpent: data.total_spent,
+      averageTicket: data.average_ticket,
+      mostFrequentDay: data.most_frequent_day,
+      favoriteProducts: data.top_products,
+      lastOrderDate: data.last_order_date,
     };
   } catch (error) {
-    console.error("Erro ao carregar detalhes do cliente:", error);
-    toast.error("Erro ao carregar detalhes do cliente");
+    toast.error("Ocorreu um erro inesperado ao buscar os detalhes.");
     throw error;
   }
 };
@@ -185,10 +127,8 @@ export const getCustomerById = async (
 
   if (error) {
     if (error.code === "PGRST116") {
-      // No rows found
       return null;
     }
-    console.error("Error fetching customer by ID:", error);
     throw error;
   }
 

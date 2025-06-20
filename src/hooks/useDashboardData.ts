@@ -35,7 +35,7 @@ export const useDashboardData = () => {
       //   "get_average_status_time"
       // );
       // if (avgTimesError) throw new Error(avgTimesError.message);
-      const avgTimesData: any[] = []; // Retorna um array vazio enquanto a função não existe
+      const avgTimesData: { status: OrderStatus; avg_minutes: number }[] = []; // Retorna um array vazio enquanto a função não existe
 
       // 4. Buscar os últimos pedidos
       const { data: recentOrdersData, error: recentOrdersError } =

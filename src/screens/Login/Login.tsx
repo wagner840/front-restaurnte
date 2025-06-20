@@ -25,9 +25,12 @@ export const Login = (): JSX.Element => {
 
     try {
       await login(email, password);
-    } catch (error: any) {
-      setError(error.message || "Ocorreu um erro ao tentar fazer login.");
-      console.error("Login failed:", error);
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message || "Ocorreu um erro ao tentar fazer login.");
+      } else {
+        setError("Ocorreu um erro desconhecido.");
+      }
     } finally {
       setIsLoading(false);
     }

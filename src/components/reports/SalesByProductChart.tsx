@@ -1,23 +1,20 @@
 import React from "react";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
   BarChart,
-  CartesianGrid,
+  Bar,
   XAxis,
   YAxis,
-  Bar,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
   LabelList,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 interface SalesByProductData {
-  product: string;
+  product_name: string;
   total_sales: number;
 }
 
@@ -26,20 +23,26 @@ interface SalesByProductChartProps {
   isLoading?: boolean;
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AF19FF"];
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 
 export const SalesByProductChart: React.FC<SalesByProductChartProps> = ({
   data,
   isLoading,
 }) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Vendas por Produto</CardTitle>
+          <CardTitle>Top 10 Produtos Mais Vendidos</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="w-full h-[300px]" />
+          <Skeleton className="w-full h-[400px]" />
         </CardContent>
       </Card>
     );
@@ -52,24 +55,38 @@ export const SalesByProductChart: React.FC<SalesByProductChartProps> = ({
           className="text-foreground"
           style={{ color: "#222", fontWeight: 700 }}
         >
-          Vendas por Produto
+          Top 10 Produtos Mais Vendidos
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={400}>
           <BarChart
             data={data}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            layout="vertical"
+            margin={{ top: 20, right: 30, left: isMobile ? 10 : 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="product_name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="total_sales" fill="#8884d8">
-              <LabelList dataKey="total_sales" position="top" />
+            <XAxis type="number" tickFormatter={formatCurrency} />
+            <YAxis
+              dataKey="product_name"
+              type="category"
+              width={isMobile ? 100 : 150}
+              interval={0}
+            />
+            <Tooltip formatter={(value) => formatCurrency(value as number)} />
+            <Bar dataKey="total_sales" fill="#8884d8" name="Vendas">
+              <LabelList
+                dataKey="total_sales"
+                position="right"
+                formatter={(value: number) => formatCurrency(value)}
+              />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        <p className="text-sm text-muted-foreground mt-4 text-center">
+          Este gráfico exibe os 10 produtos mais vendidos (em R$) no período
+          selecionado.
+        </p>
       </CardContent>
     </Card>
   );

@@ -1,7 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 import { toast } from "sonner";
 import { DashboardStats } from "../types";
-import { getSalesByCategory } from "./reportService";
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
@@ -10,9 +9,9 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     );
 
     if (error) {
-      toast.error(
-        "Erro ao buscar dados do dashboard: " + (error as any).message
-      );
+      if (error instanceof Error) {
+        toast.error("Erro ao buscar dados do dashboard: " + error.message);
+      }
       throw error;
     }
 
@@ -33,7 +32,6 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
     return mappedData;
   } catch (error) {
-    console.error("Erro ao buscar dados do dashboard:", error);
     toast.error(
       "Erro ao carregar dados do dashboard. Tente novamente mais tarde."
     );
@@ -47,5 +45,3 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     };
   }
 };
-
-export { getSalesByCategory };

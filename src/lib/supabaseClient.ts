@@ -22,9 +22,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     params: {
       eventsPerSecond: 10,
     },
-    heartbeat: {
-      interval: 5000, // 5 segundos
-      timeout: 10000, // 10 segundos
-    },
+    // O heartbeat é gerenciado internamente pelo Supabase JS v2+ e não é configurável diretamente aqui.
+    // A propriedade 'heartbeat' não é reconhecida em RealtimeClientOptions.
   },
 });

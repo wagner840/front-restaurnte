@@ -23,7 +23,6 @@ export const statusConfig: {
     color: "bg-status-pending text-status-pending-foreground",
     icon: AlertCircle,
     label: "Pendente",
-    animation: "animate-scale-attention",
     borderColor: "border-l-status-pending",
   },
   confirmed: {

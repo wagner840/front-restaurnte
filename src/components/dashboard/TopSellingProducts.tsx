@@ -4,14 +4,21 @@ import { Skeleton } from "../ui/skeleton";
 import { Crown, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabaseClient";
+import { TopSellingProduct } from "@/types";
 
 interface TopSellingProductsProps {
-  products: Array<{
-    product_name: string;
-    total_quantity: number;
-  }>;
-  isLoading?: boolean;
+  // products agora será buscado internamente
 }
+
+const fetchTopSellingProducts = async (): Promise<TopSellingProduct[]> => {
+  const { data, error } = await supabase.rpc("get_top_selling_products_global");
+  if (error) {
+    throw new Error("Could not fetch top selling products");
+  }
+  return data || [];
+};
 
 const container = {
   hidden: { opacity: 0 },
@@ -28,10 +35,12 @@ const item = {
   show: { opacity: 1, x: 0 },
 };
 
-export const TopSellingProducts: React.FC<TopSellingProductsProps> = ({
-  products,
-  isLoading = false,
-}) => {
+export const TopSellingProducts: React.FC<TopSellingProductsProps> = () => {
+  const { data: products, isLoading } = useQuery<TopSellingProduct[]>({
+    queryKey: ["topSellingProducts"],
+    queryFn: fetchTopSellingProducts,
+  });
+
   if (isLoading) {
     return (
       <Card>
@@ -59,7 +68,7 @@ export const TopSellingProducts: React.FC<TopSellingProductsProps> = ({
           <div className="h-8 w-8 rounded-lg bg-yellow-100 flex items-center justify-center">
             <Crown className="h-5 w-5 text-yellow-600" />
           </div>
-          Produtos Mais Vendidos
+          Produtos Mais Vendidos (Global)
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -69,7 +78,7 @@ export const TopSellingProducts: React.FC<TopSellingProductsProps> = ({
           initial="hidden"
           animate="show"
         >
-          {products.map((product, index) => (
+          {products?.map((product, index) => (
             <motion.div
               key={product.product_name}
               variants={item}

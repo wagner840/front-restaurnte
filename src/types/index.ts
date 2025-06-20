@@ -106,20 +106,28 @@ export interface Customer {
   whatsapp_chat_id: number | null;
 }
 
+export interface CustomerAnalyticsData {
+  total_orders: number;
+  total_spent: number;
+  average_ticket: number;
+  most_frequent_day: string | null;
+  top_products: Array<{
+    product: string;
+    quantity: number;
+  }>;
+  last_order_date: string | null;
+}
+
 export interface CustomerDetails {
-  customer: Customer;
   totalOrders: number;
   totalSpent: number;
   averageTicket: number;
-  favoriteDays: string[];
+  mostFrequentDay: string | null;
   favoriteProducts: Array<{
     product: string;
     quantity: number;
   }>;
-  favoriteHours: number[];
-  lastOrder: Order | null;
-  recentOrders: Order[];
-  orderFrequency: number; // Média de dias entre pedidos
+  lastOrderDate: string | null;
 }
 
 export type BadgeVariant =
@@ -133,7 +141,25 @@ export type BadgeVariant =
 export interface SalesByCategory {
   category: string;
   total_sales: number;
-  total_quantity: number;
+}
+
+export interface FunnelData {
+  status: string;
+  value: number;
+}
+
+export interface OrderTypeComparison {
+  order_type: "delivery" | "pickup";
+  count: number;
+}
+
+export interface AllReportsData {
+  salesByCategory: SalesByCategory[];
+  salesByProduct: SalesByProduct[];
+  salesByCustomer: SalesByCustomer[];
+  funnelDelivery: FunnelData[];
+  funnelRetirada: FunnelData[];
+  orderTypeComparison: OrderTypeComparison[];
 }
 
 export interface SalesByProduct {
@@ -144,4 +170,26 @@ export interface SalesByProduct {
 export interface SalesByCustomer {
   customer_name: string;
   total_sales: number;
+}
+
+export interface TopSellingProduct {
+  product_name: string;
+  total_quantity: number;
+}
+
+export interface RestaurantSettings {
+  name: string;
+  cnpj?: string;
+  address?: string;
+  logo_url?: string;
+  opening_hours?: {
+    seg: string;
+    sab: string;
+    dom: string;
+  };
+  integrations?: {
+    whatsapp: string;
+    ifood: string;
+  };
+  payment_methods?: string[];
 }

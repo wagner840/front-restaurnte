@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { format, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -20,7 +21,6 @@ import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
 import { Skeleton } from "../ui/skeleton";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 import "./recent-orders-animations.css";
 
 interface RecentOrdersProps {
@@ -96,21 +96,6 @@ const orderTypeConfig = {
   pickup: { label: "Retirada", icon: Package },
 };
 
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 },
-};
-
 export const RecentOrders: React.FC<RecentOrdersProps> = ({
   orders,
   onViewAllClick,
@@ -162,125 +147,139 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({
       </CardHeader>
       <CardContent className="p-2">
         <ScrollArea className="h-[400px] pr-4">
-          <motion.div
-            className="space-y-4"
-            variants={container}
-            initial="hidden"
-            animate="show"
-          >
-            <AnimatePresence>
-              {orders.map((order) => {
-                const status = statusConfig[order.status];
-                const orderType = orderTypeConfig[order.order_type];
-                const itemSummary =
-                  order.order_items && order.order_items.length > 0
-                    ? order.order_items
-                        .map((item) => {
-                          const nome = item.name || item.item_name || item.item;
-                          if (!nome) return null;
-                          return `${item.quantity}x ${nome}`;
-                        })
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .join(", ") +
-                      (order.order_items.length > 2
-                        ? ` e mais ${order.order_items.length - 2} item(s)`
-                        : "")
-                    : "Pedido vazio";
-
-                const timeInCurrentStatus = differenceInMinutes(
-                  new Date(),
-                  new Date(order.last_updated_at)
-                );
-                const avgTime = avgTimesMap.get(order.status) ?? 0;
-                const isDelayed =
-                  avgTime > 0 && timeInCurrentStatus > avgTime * 1.25;
-
-                return (
-                  <motion.div
-                    key={order.order_id}
-                    variants={item}
-                    className={cn(
-                      "flex items-start justify-between p-4 rounded-lg border",
-                      "transition-all duration-200 ease-in-out",
-                      "hover:bg-accent/5 hover:border-primary/20",
-                      isDelayed
-                        ? "border-red-500 bg-red-500/5"
-                        : "border-border",
-                      order.status === "pending" && "animate-scale-attention"
-                    )}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={cn(
-                          "h-8 w-8 rounded-lg flex items-center justify-center",
-                          status.className
-                        )}
-                      >
-                        {status?.icon && <status.icon className="h-5 w-5" />}
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-semibold text-foreground">
-                          {order.customerName}
-                        </p>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {itemSummary}
-                        </p>
-                        <div className="flex items-center gap-2 pt-1">
-                          <Badge
-                            variant={status.variant as any}
-                            className={cn(
-                              "transition-colors",
-                              status.className
-                            )}
-                          >
-                            {status.label}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className="flex items-center gap-1 bg-background/50"
-                          >
-                            {orderType?.icon && (
-                              <orderType.icon className="h-3 w-3" />
-                            )}
-                            {orderType?.label}
-                          </Badge>
-                          {isDelayed && (
-                            <Badge
-                              variant="destructive"
-                              className="flex items-center gap-1"
-                            >
-                              <AlertTriangle className="h-3 w-3" />
-                              Atrasado
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-lg font-bold text-foreground">
-                        {new Intl.NumberFormat("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        }).format(order.total_amount)}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(
-                          new Date(order.created_at),
-                          "dd/MM/yyyy HH:mm",
-                          {
-                            locale: ptBR,
-                          }
-                        )}
-                      </p>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </motion.div>
+          <div className="space-y-4">
+            {orders.map((order) => (
+              <RecentOrderRow
+                key={order.order_id}
+                order={order}
+                avgTimesMap={avgTimesMap}
+              />
+            ))}
+          </div>
         </ScrollArea>
       </CardContent>
     </Card>
+  );
+};
+
+interface RecentOrderRowProps {
+  order: Order;
+  avgTimesMap: Map<string, number>;
+}
+
+const cardVariants = {
+  pulse: {
+    scale: [0.9, 1.03, 1],
+    boxShadow: [
+      "0px 0px 0px rgba(255, 221, 0, 0)",
+      "0px 0px 10px rgba(255, 198, 10, 0.952)",
+      "0px 0px 10px rgb(255, 198, 10, 0.952)",
+    ],
+    transition: {
+      duration: 1.5,
+      ease: "easeInOut",
+      repeat: Infinity,
+    },
+  },
+  static: {
+    scale: 1,
+    boxShadow: "0px 0px 0px rgba(255, 221, 0, 0)",
+  },
+};
+
+const RecentOrderRow: React.FC<RecentOrderRowProps> = ({
+  order,
+  avgTimesMap,
+}) => {
+  const statusInfo = statusConfig[order.status];
+  const orderTypeInfo = orderTypeConfig[order.order_type];
+  const StatusIcon = statusInfo.icon;
+  const OrderTypeIcon = orderTypeInfo.icon;
+
+  const itemSummary =
+    order.order_items && order.order_items.length > 0
+      ? order.order_items
+          .map((item) => {
+            const nome = item.name || item.item_name || item.item;
+            if (!nome) return null;
+            return `${item.quantity}x ${nome}`;
+          })
+          .filter(Boolean)
+          .slice(0, 2)
+          .join(", ") +
+        (order.order_items.length > 2
+          ? ` e mais ${order.order_items.length - 2} item(s)`
+          : "")
+      : "Pedido vazio";
+
+  const timeInCurrentStatus = differenceInMinutes(
+    new Date(),
+    new Date(order.last_updated_at)
+  );
+  const avgTime = avgTimesMap.get(order.status) ?? 0;
+  const isDelayed = avgTime > 0 && timeInCurrentStatus > avgTime * 1.25;
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      animate={order.status === "pending" ? "pulse" : "static"}
+      className={cn(
+        "flex items-start justify-between p-4 rounded-lg border",
+        "transition-all duration-200 ease-in-out",
+        "hover:bg-accent/5 hover:border-primary/20",
+        isDelayed ? "border-red-500 bg-red-500/5" : "border-border"
+      )}
+    >
+      <div className="flex items-start gap-4">
+        <div
+          className={cn(
+            "h-8 w-8 rounded-lg flex items-center justify-center",
+            statusInfo.className
+          )}
+        >
+          <StatusIcon className="h-5 w-5" />
+        </div>
+        <div className="space-y-1">
+          <p className="font-semibold text-foreground">{order.customerName}</p>
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {itemSummary}
+          </p>
+          <div className="flex items-center gap-2 pt-1">
+            <Badge
+              variant={statusInfo.variant}
+              className={cn("transition-colors", statusInfo.className)}
+            >
+              {statusInfo.label}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="flex items-center gap-1 bg-background/50"
+            >
+              <OrderTypeIcon className="h-3 w-3" />
+              {orderTypeInfo.label}
+            </Badge>
+            {isDelayed && (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Atrasado
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <p className="text-lg font-bold text-foreground">
+          {new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }).format(order.total_amount)}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", {
+            locale: ptBR,
+          })}
+        </p>
+      </div>
+    </motion.div>
   );
 };
