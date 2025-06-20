@@ -8,9 +8,6 @@ export function initializeSounds() {
 
 export function playNotificationSound() {
   if (notificationSound) {
-    notificationSound.play().catch(() => {});
+    notificationSound.play().catch(error => console.error("Error playing sound:", error));
   }
 }
-
-// Inicializa os sons quando o módulo é carregado
-initializeSounds();
