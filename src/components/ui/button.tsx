@@ -22,7 +22,7 @@ const buttonVariants = cva(
           "bg-green-600 text-white shadow-[0_2px_10px_-3px_rgba(22,163,74,0.1)] hover:bg-green-700 hover:shadow-[0_8px_30px_-12px_rgba(22,163,74,0.2)]",
         warning:
           "bg-yellow-500 text-white shadow-[0_2px_10px_-3px_rgba(234,179,8,0.1)] hover:bg-yellow-600 hover:shadow-[0_8px_30px_-12px_rgba(234,179,8,0.2)]",
-        info: "bg-blue-600 text-white shadow-[0_2px_10px_-3px_rgba(37,99,235,0.1)] hover:bg-blue-700 hover:shadow-[0_8px_30px_-12px_rgba(37,99,235,0.2)]",
+        info: "bg-primary text-primary-foreground shadow-[0_2px_10px_-3px_rgba(37,99,235,0.1)] hover:bg-primary/90 hover:shadow-[0_8px_30px_-12px_rgba(37,99,235,0.2)]",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -53,7 +53,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           buttonVariants({ variant, size, className }),
           contrast &&
-            "bg-black text-white border border-white hover:bg-gray-900"
+            "bg-background text-foreground border border-border hover:bg-accent/10"
         )}
         ref={ref}
         aria-label={

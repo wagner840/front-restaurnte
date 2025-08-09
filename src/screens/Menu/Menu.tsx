@@ -11,10 +11,7 @@ import { Skeleton } from "../../components/ui/skeleton";
 const MenuSkeleton: React.FC = () => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
     {Array.from({ length: 10 }).map((_, index) => (
-      <div
-        key={index}
-        className="bg-white rounded-lg shadow-md overflow-hidden"
-      >
+      <div key={index} className="bg-card rounded-lg shadow-md overflow-hidden">
         <Skeleton className="h-48 w-full" />
         <div className="p-4">
           <Skeleton className="h-4 w-1/3 mb-2" />
@@ -77,12 +74,12 @@ export const Menu: React.FC = () => {
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Cardápio</h1>
+          <h1 className="text-2xl font-bold text-foreground">Cardápio</h1>
           <p className="text-gray-600">Gerencie os itens do seu cardápio</p>
         </div>
         <Button
           onClick={handleOpenModalForAdd}
-          className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
         >
           <Plus size={20} className="mr-2" />
           Adicionar Item
@@ -102,7 +99,7 @@ export const Menu: React.FC = () => {
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="h-10 px-3 text-sm border rounded-md bg-white w-full sm:w-auto"
+          className="h-10 px-3 text-sm border rounded-md bg-background w-full sm:w-auto"
         >
           <option value="all">Todas as Categorias</option>
           {categories.map((category) => (

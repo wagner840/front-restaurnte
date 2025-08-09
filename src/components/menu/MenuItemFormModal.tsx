@@ -97,7 +97,7 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
       onClick={handleOverlayClick}
     >
       <div
-        className="bg-white p-3 rounded shadow w-full max-w-xs relative"
+        className="bg-card p-3 rounded shadow w-full max-w-xs relative"
         role="dialog"
         aria-modal="true"
       >
@@ -206,14 +206,14 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
         <div className="flex justify-end gap-2 mt-3">
           <button
             onClick={onClose}
-            className="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100"
+            className="px-2 py-1 text-xs rounded border border-border hover:bg-accent/10"
             type="button"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
-            className="px-3 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+            className="px-3 py-1 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             disabled={isSaving}
             type="button"
           >

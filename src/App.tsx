@@ -20,7 +20,7 @@ export const App: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
           <div className="mb-4">
             <Skeleton className="h-12 w-48 mx-auto mb-2" />

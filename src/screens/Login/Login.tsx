@@ -76,6 +76,7 @@ export const Login = (): JSX.Element => {
                 required
                 disabled={isLoading}
                 leftIcon={<Mail className="h-4 w-4" />}
+                data-testid="login-email"
               />
             </div>
 
@@ -95,6 +96,7 @@ export const Login = (): JSX.Element => {
                 required
                 disabled={isLoading}
                 leftIcon={<Lock className="h-4 w-4" />}
+                data-testid="login-password"
               />
             </div>
 
@@ -103,6 +105,7 @@ export const Login = (): JSX.Element => {
               disabled={isLoading}
               className="w-full"
               variant="default"
+              data-testid="login-submit"
             >
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>

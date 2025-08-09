@@ -119,9 +119,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav
         ref={sidebarRef}
         className={cn(
-          "fixed top-0 left-0 h-full bg-white border-r border-gray-200 flex flex-col shadow-lg z-40",
+          "fixed top-0 left-0 h-full bg-card/95 supports-[backdrop-filter]:bg-card/80 backdrop-blur-sm border-r border-border flex flex-col shadow-lg z-40",
           "transition-transform duration-300 ease-in-out",
-          "w-64", // Largura padrão
+          "w-72 xl:w-80", // Largura responsiva
           // Comportamento em mobile: desliza para fora da tela
           isOpen ? "translate-x-0" : "-translate-x-full",
           // Comportamento em desktop: sempre visível e estático
@@ -131,10 +131,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         role="navigation"
         onKeyDown={handleKeyDown}
       >
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+        <div className="p-6 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center"
+              className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground"
               role="img"
               aria-label="Logo do RestaurantePro"
             >
@@ -150,17 +150,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </svg>
             </div>
             <div>
-              <h1 className="font-bold text-lg text-gray-900">
+              <h1 className="font-bold text-lg text-foreground">
                 RestaurantePro
               </h1>
-              <p className="text-xs text-gray-500">Sistema de Gestão</p>
+              <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
             </div>
           </div>
           {/* Botão de fechar visível apenas em mobile */}
           <button
             ref={firstFocusableRef}
             onClick={onClose}
-            className="md:hidden text-gray-500 hover:text-gray-800 accessible-button"
+            className="md:hidden text-muted-foreground hover:text-foreground accessible-button"
             aria-label="Fechar menu de navegação"
           >
             <X size={24} aria-hidden="true" />
@@ -196,11 +196,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200",
                       "sidebar-nav accessible-button",
                       isActive
-                        ? "bg-orange-50 text-orange-600 font-semibold"
-                        : "text-gray-600",
+                        ? "bg-primary/10 text-primary font-semibold border border-primary/20"
+                        : "text-muted-foreground",
                       isDisabled
                         ? "opacity-50 cursor-not-allowed"
-                        : "hover:bg-gray-50 hover:text-gray-900 focus-visible:bg-gray-50"
+                        : "hover:bg-accent/10 hover:text-foreground focus-visible:bg-accent/10"
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -224,12 +224,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </ul>
         </div>
 
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-border">
           <button
             onClick={async () => {
               await onLogout();
             }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors accessible-button"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors accessible-button"
             aria-label="Fazer logout do sistema"
           >
             <LogOut size={20} aria-hidden="true" />

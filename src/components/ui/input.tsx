@@ -35,7 +35,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             leftIcon && "pl-10",
             rightIcon && "pr-10",
             contrast &&
-              "bg-black text-white border-white placeholder:text-gray-200",
+              "bg-background text-foreground border-border placeholder:text-muted-foreground",
             className
           )}
           aria-label={

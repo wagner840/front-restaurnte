@@ -94,7 +94,7 @@ export const TopSellingProducts: React.FC<TopSellingProductsProps> = () => {
                     index === 0
                       ? "bg-yellow-100 text-yellow-700"
                       : index === 1
-                      ? "bg-gray-100 text-gray-700"
+                      ? "bg-accent/10 text-foreground"
                       : index === 2
                       ? "bg-orange-100 text-orange-700"
                       : "text-muted-foreground"

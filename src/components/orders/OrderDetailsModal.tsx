@@ -22,6 +22,14 @@ import {
   XCircle,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "../../lib/utils";
+import { useUpdateOrderStatus } from "../../hooks/useUpdateOrderStatus";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface OrderDetailsModalProps {
   order: Order | null;
@@ -65,6 +73,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const statusInfo = getStatusInfo(order.status);
   const StatusIcon = statusInfo.icon;
+  const { mutate: updateStatus, isPending } = useUpdateOrderStatus();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -72,7 +81,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <StatusIcon className="h-5 w-5" />
-            Pedido #{order.order_id.substring(0, 8)}
+            Pedido #{String(order.order_id).substring(0, 8)}
           </DialogTitle>
           <DialogDescription>
             Detalhes do pedido e informações do cliente.
@@ -87,7 +96,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </span>
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid gap-2" data-testid="order-details-modal">
             <h3 className="font-semibold">Informações do Cliente</h3>
             <div className="grid gap-2 text-sm">
               <div className="flex items-center gap-2">
@@ -99,6 +108,32 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     Cliente não identificado
                   </span>
                 )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Status:</span>
+                <Select
+                  value={order.status}
+                  onValueChange={(value) =>
+                    updateStatus({
+                      orderId: String(order.order_id),
+                      newStatus: value as OrderStatus,
+                    })
+                  }
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="w-48 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="confirmed">Confirmado</SelectItem>
+                    <SelectItem value="preparing">Preparando</SelectItem>
+                    <SelectItem value="out_for_delivery">Em Entrega</SelectItem>
+                    <SelectItem value="delivered">Entregue</SelectItem>
+                    <SelectItem value="completed">Concluído</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

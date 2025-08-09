@@ -78,7 +78,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         onClick && "cursor-pointer",
         className
       )}
-      onClick={onClick}
+      data-testid={`order-card-${order.order_id}`}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick?.();
+      }}
     >
       <div className="flex flex-grow items-start justify-between gap-4">
         <div className="flex flex-1 flex-col space-y-3">

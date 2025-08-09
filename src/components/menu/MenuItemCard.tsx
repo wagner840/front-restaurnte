@@ -17,7 +17,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
 }) => {
   return (
     <div
-      className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 ease-in-out flex flex-col h-full"
+      className="bg-card rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 ease-in-out flex flex-col h-full"
       data-testid="menu-item-card"
     >
       <div className="p-4 flex-grow flex flex-col">
@@ -33,7 +33,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
             </Badge>
           </div>
           <h3
-            className="text-lg font-semibold text-gray-800 truncate"
+            className="text-lg font-semibold text-foreground truncate"
             title={item.name}
           >
             {item.name}
