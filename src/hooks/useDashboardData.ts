@@ -23,7 +23,7 @@ export const useDashboardData = () => {
         "get_comprehensive_dashboard_stats"
       );
       if (statsError) throw new Error(statsError.message);
-      const stats = statsData[0];
+      const stats: any = Array.isArray(statsData) ? statsData[0] : statsData;
 
       // 2. Chamar a função de produtos mais vendidos
       const { data: topProductsData, error: topProductsError } =
@@ -39,29 +39,102 @@ export const useDashboardData = () => {
 
       // 4. Buscar os últimos pedidos
       const { data: recentOrdersData, error: recentOrdersError } =
-        await supabase
-          .from("orders")
-          .select(`*, customer:customers (name)`)
-          .order("created_at", { ascending: false })
-          .limit(5);
+        await supabase.from("recent_orders_with_customer").select("*").limit(5);
       if (recentOrdersError) throw new Error(recentOrdersError.message);
 
-      const recent_orders = (recentOrdersData || []).map((p) => {
-        const customer = Array.isArray(p.customer) ? p.customer[0] : p.customer;
+      // Normaliza itens que podem vir como objeto JSON, array ou null
+      const normalizeOrderItems = (value: any) => {
+        let raw = value;
+        if (typeof raw === "string") {
+          try {
+            raw = JSON.parse(raw);
+          } catch {
+            raw = [];
+          }
+        }
+        if (Array.isArray(raw)) return raw;
+        if (raw && typeof raw === "object") {
+          if (Array.isArray((raw as any).items)) return (raw as any).items;
+          return [raw];
+        }
+        return [];
+      };
+
+      const recent_orders = (recentOrdersData || []).map((p: any) => {
+        const order_items = normalizeOrderItems(p.order_items).map(
+          (item: any) => {
+            const precoAcento = item?.["preço"]; // casos com acento
+            const candidatesPrice = [
+              item?.price,
+              item?.unit_price,
+              item?.valor,
+              precoAcento,
+            ];
+            const priceNum = candidatesPrice.find(
+              (v: any) => typeof v === "number"
+            );
+            const price =
+              typeof priceNum === "number"
+                ? priceNum
+                : (() => {
+                    const str = candidatesPrice.find(
+                      (v: any) => typeof v === "string"
+                    );
+                    return str
+                      ? Number(
+                          String(str)
+                            .replace(/[^0-9.,-]/g, "")
+                            .replace(",", ".")
+                        )
+                      : 0;
+                  })();
+
+            const candidatesQty = [item?.quantity, item?.quantidade];
+            const qtyNum = candidatesQty.find(
+              (v: any) => typeof v === "number"
+            );
+            const quantity =
+              typeof qtyNum === "number"
+                ? qtyNum
+                : Number(
+                    candidatesQty.find((v: any) => typeof v === "string") || 1
+                  );
+
+            const fallbackFromNotes =
+              item?.notes || item?.observacoes || item?.["observações"] || "";
+            const name =
+              item?.name ??
+              item?.item_name ??
+              item?.item ??
+              (fallbackFromNotes ? String(fallbackFromNotes) : "Item");
+            return {
+              name,
+              price,
+              quantity:
+                Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+              observation:
+                name === fallbackFromNotes && fallbackFromNotes
+                  ? undefined
+                  : item?.notes || item?.observacoes || item?.["observações"],
+            };
+          }
+        );
+
         return {
           ...p,
-          customerName: customer?.name || "Cliente Anônimo",
-        };
-      }) as Order[];
+          order_items,
+          customerName: p.customer_name || "Cliente Anônimo",
+        } as Order;
+      });
 
       return {
-        orders_today: stats.orders_today || 0,
-        revenue_today: stats.revenue_today || 0,
-        active_orders: stats.active_orders || 0,
-        completion_rate: stats.completion_rate || 0,
-        revenue_growth: stats.revenue_growth || 0,
-        active_customers_30d: stats.active_customers_30d || 0,
-        top_selling_products: topProductsData || [],
+        orders_today: Number(stats?.orders_today) || 0,
+        revenue_today: Number(stats?.revenue_today) || 0,
+        active_orders: Number(stats?.active_orders) || 0,
+        completion_rate: Number(stats?.completion_rate) || 0,
+        revenue_growth: Number(stats?.revenue_growth) || 0,
+        active_customers_30d: Number(stats?.active_customers_30d) || 0,
+        top_selling_products: (topProductsData as any) || [],
         average_status_times: avgTimesData || [],
         recent_orders,
       };

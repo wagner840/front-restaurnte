@@ -20,7 +20,13 @@ interface OrderItemFromDB {
   item_name?: string;
   item?: string;
   price?: number;
-  quantity: number;
+  unit_price?: number;
+  valor?: number;
+  quantity?: number;
+  quantidade?: number;
+  notes?: string;
+  observacoes?: string;
+  observações?: string;
 }
 
 interface OrderWithRelations extends Order {
@@ -36,23 +42,79 @@ const formatOrderData = (order: OrderWithRelations): Order => {
   // to ensure robustness against varied data from the DB. Ideally, the order_items
   // JSON structure should be standardized and validated on the server-side.
   // Normaliza os itens do pedido para garantir consistência
-  const normalizedOrderItems = Array.isArray(order.order_items)
-    ? order.order_items.map((item: OrderItemFromDB) => ({
-        name:
-          item.menu_items?.name ||
-          item.name ||
-          item.item_name ||
-          item.item ||
-          "Item não especificado",
-        price:
-          typeof item.menu_items?.price === "number"
-            ? item.menu_items.price
-            : typeof item.price === "number"
-            ? item.price
-            : 0,
-        quantity: typeof item.quantity === "number" ? item.quantity : 1,
-      }))
+  let rawItems: any = order.order_items;
+  if (typeof rawItems === "string") {
+    try {
+      rawItems = JSON.parse(rawItems);
+    } catch {
+      rawItems = [];
+    }
+  }
+
+  const asArray = Array.isArray(rawItems)
+    ? rawItems
+    : rawItems && typeof rawItems === "object"
+    ? (rawItems as any).items ?? [rawItems]
     : [];
+
+  const normalizedOrderItems = asArray.map((item: OrderItemFromDB) => {
+    const fallbackFromNotes =
+      item.notes || item.observacoes || (item as any)["observações"] || "";
+    const resolvedName =
+      item.menu_items?.name ||
+      item.name ||
+      item.item_name ||
+      item.item ||
+      (fallbackFromNotes ? String(fallbackFromNotes) : undefined) ||
+      "Item";
+
+    const price = (() => {
+      const precoAcento = (item as any)["preço"] as unknown;
+      const candidates = [
+        item.menu_items?.price,
+        item.price,
+        item.unit_price,
+        item.valor,
+        precoAcento,
+      ];
+      const numeric = candidates.find((v) => typeof v === "number");
+      if (typeof numeric === "number") return numeric;
+      const str = candidates.find((v) => typeof v === "string") as
+        | string
+        | undefined;
+      return str
+        ? Number(
+            String(str)
+              .replace(/[^0-9.,-]/g, "")
+              .replace(",", ".")
+          )
+        : 0;
+    })();
+    const quantity = (() => {
+      const candidates = [item.quantity, item.quantidade];
+      const numeric = candidates.find((v) => typeof v === "number");
+      if (typeof numeric === "number") return numeric;
+      const str = candidates.find((v) => typeof v === "string") as
+        | string
+        | undefined;
+      return str ? Number(str) : 1;
+    })();
+    const observationRaw =
+      item.notes ||
+      item.observacoes ||
+      (item as any)["observações"] ||
+      undefined;
+
+    return {
+      name: resolvedName,
+      price,
+      quantity,
+      observation:
+        resolvedName === fallbackFromNotes && fallbackFromNotes
+          ? undefined
+          : observationRaw,
+    };
+  });
 
   return {
     order_id: order.order_id,
@@ -127,22 +189,21 @@ export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus
 ): Promise<Order> {
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ status, last_updated_at: new Date().toISOString() })
-    .eq("order_id", orderId)
-    .select(ORDER_SELECT_QUERY)
-    .single();
+  const { data, error } = await supabase.rpc("update_order_status_rpc", {
+    p_order_id: Number(orderId),
+    p_new_status: status,
+  });
 
   if (error) {
     handleError(error, "Erro ao atualizar status do pedido");
   }
 
-  if (!data) {
+  const record: any = Array.isArray(data) ? data[0] : data;
+  if (!record) {
     throw new Error("Pedido não encontrado ou erro ao atualizar.");
   }
 
-  return formatOrderData(data);
+  return formatOrderData(record);
 }
 
 export const createOrder = async (

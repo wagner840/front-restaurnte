@@ -27,9 +27,16 @@ export const OrderItemsList: React.FC<OrderItemsListProps> = ({ items }) => {
           transition={{ delay: index * 0.1 }}
           className="flex items-center justify-between text-sm"
         >
-          <span>
-            {item.quantity}x {item.name || item.item_name || item.item}
-          </span>
+          <div className="flex flex-col">
+            <span>
+              {item.quantity}x {item.name || item.item_name || item.item}
+            </span>
+            {item.observation && (
+              <span className="text-xs text-muted-foreground">
+                {item.observation}
+              </span>
+            )}
+          </div>
           <span className="font-medium">{formatCurrency(item.price)}</span>
         </motion.div>
       ))}

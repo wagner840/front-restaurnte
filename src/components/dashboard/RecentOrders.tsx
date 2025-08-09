@@ -197,7 +197,7 @@ const RecentOrderRow: React.FC<RecentOrderRowProps> = ({
   const OrderTypeIcon = orderTypeInfo.icon;
 
   const itemSummary =
-    order.order_items && order.order_items.length > 0
+    Array.isArray(order.order_items) && order.order_items.length > 0
       ? order.order_items
           .map((item) => {
             const nome = item.name || item.item_name || item.item;
@@ -222,7 +222,7 @@ const RecentOrderRow: React.FC<RecentOrderRowProps> = ({
   return (
     <motion.div
       variants={cardVariants}
-      animate={order.status === "pending" ? "pulse" : "static"}
+      animate={"static"}
       className={cn(
         "flex items-start justify-between p-4 rounded-lg border",
         "transition-all duration-200 ease-in-out",

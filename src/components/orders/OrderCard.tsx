@@ -29,15 +29,8 @@ const markAsViewed = async (orderId: string) => {
   }
 };
 
+// Removido o efeito de "pulse" para pedidos pendentes
 const cardVariants = {
-  pulse: {
-    scale: [0.8, 1, 1.05],
-    transition: {
-      duration: 1.5,
-      ease: "easeInOut",
-      repeat: Infinity,
-    },
-  },
   static: {
     scale: 1,
   },
@@ -74,7 +67,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   return (
     <motion.div
       variants={cardVariants}
-      animate={order.status === "pending" ? "pulse" : "static"}
+      animate={"static"}
       onMouseEnter={handleMouseEnter}
       className={cn(
         "group relative flex flex-col rounded-lg border p-4",

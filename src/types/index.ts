@@ -18,6 +18,8 @@ export interface OrderItemJson {
   item?: string;
   price: number;
   quantity: number;
+  // Campo unificado para observações/notas vindas do agente
+  observation?: string;
 }
 
 export type OrderStatus =

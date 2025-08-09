@@ -15,19 +15,21 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       throw error;
     }
 
-    if (!data || data.length === 0) {
+    if (!data) {
       toast.error("Dados do dashboard não encontrados na resposta.");
       throw new Error("Dados do dashboard não encontrados");
     }
 
-    const stats = data[0];
+    // Compatibilidade: a função no banco retorna um JSON único.
+    // Em ambientes antigos, pode retornar um array com um registro.
+    const stats: any = Array.isArray(data) ? data[0] : data;
     const mappedData: DashboardStats = {
-      ordersToday: stats.orders_today || 0,
-      revenueToday: stats.revenue_today || 0,
-      activeOrders: stats.active_orders || 0,
-      completionRate: stats.completion_rate || 0,
-      revenueGrowth: stats.revenue_growth || 0,
-      activeCustomers30d: stats.active_customers_30d || 0,
+      ordersToday: Number(stats.orders_today) || 0,
+      revenueToday: Number(stats.revenue_today) || 0,
+      activeOrders: Number(stats.active_orders) || 0,
+      completionRate: Number(stats.completion_rate) || 0,
+      revenueGrowth: Number(stats.revenue_growth) || 0,
+      activeCustomers30d: Number(stats.active_customers_30d) || 0,
     };
 
     return mappedData;
