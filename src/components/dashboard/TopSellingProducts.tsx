@@ -39,6 +39,9 @@ export const TopSellingProducts: React.FC<TopSellingProductsProps> = () => {
   const { data: products, isLoading } = useQuery<TopSellingProduct[]>({
     queryKey: ["topSellingProducts"],
     queryFn: fetchTopSellingProducts,
+    refetchInterval: 30000, // Atualiza a cada 30 segundos
+    refetchIntervalInBackground: true, // Continue atualizando mesmo em background
+    staleTime: 0, // Considera dados sempre como desatualizados para forçar atualizações
   });
 
   if (isLoading) {

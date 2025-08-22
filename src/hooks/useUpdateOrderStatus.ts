@@ -43,6 +43,8 @@ export const useUpdateOrderStatus = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      // Invalida o cache dos produtos mais vendidos para atualizar automaticamente
+      queryClient.invalidateQueries({ queryKey: ["topSellingProducts"] });
     },
   });
 };

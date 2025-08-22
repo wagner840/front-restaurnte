@@ -89,8 +89,7 @@ export const getCustomerDetails = async (
 
   try {
     const { data, error } = await supabase
-      .rpc("get_customer_analytics", { p_customer_id: customerId })
-      .single<CustomerAnalyticsData>();
+      .rpc("get_customer_analytics", { p_customer_id: customerId });
 
     if (error) {
       toast.error("Falha ao carregar os detalhes do cliente.");
@@ -101,14 +100,17 @@ export const getCustomerDetails = async (
       throw new Error("Nenhuma análise encontrada para este cliente.");
     }
 
+    // A função agora retorna um objeto JSON diretamente
+    const analytics = data;
+
     // Mapeia de snake_case (banco) para camelCase (frontend)
     return {
-      totalOrders: data.total_orders,
-      totalSpent: data.total_spent,
-      averageTicket: data.average_ticket,
-      mostFrequentDay: data.most_frequent_day,
-      favoriteProducts: data.top_products,
-      lastOrderDate: data.last_order_date,
+      totalOrders: analytics.total_orders,
+      totalSpent: analytics.total_spent,
+      averageTicket: analytics.average_ticket,
+      mostFrequentDay: analytics.most_frequent_day,
+      favoriteProducts: analytics.top_products,
+      lastOrderDate: analytics.last_order_date,
     };
   } catch (error) {
     toast.error("Ocorreu um erro inesperado ao buscar os detalhes.");

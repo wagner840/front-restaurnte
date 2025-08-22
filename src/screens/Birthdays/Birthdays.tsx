@@ -2,10 +2,15 @@ import React from "react";
 import { useBirthdayCustomers } from "../../hooks/useCustomers";
 import { BirthdayCustomerCard } from "../../components/birthdays/BirthdayCustomerCard";
 import { Skeleton } from "../../components/ui/skeleton";
-import { AlertTriangle, PartyPopper } from "lucide-react";
+import { GoogleAuthButton } from "../../components/google-calendar/GoogleAuthButton";
+import { GoogleCalendarEventsSection } from "../../components/google-calendar/GoogleCalendarEventsSection";
+import { CalendarSyncProvider } from "../../components/google-calendar/CalendarSyncProvider";
+import { useGoogleAuth } from "../../hooks/useGoogleAuth";
+import { AlertTriangle, PartyPopper, Calendar } from "lucide-react";
 
 export const BirthdaysScreen: React.FC = () => {
   const { data: customers = [], isLoading, isError } = useBirthdayCustomers();
+  const { isAuthenticated } = useGoogleAuth();
 
   const renderContent = () => {
     if (isLoading) {
@@ -61,14 +66,32 @@ export const BirthdaysScreen: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 h-full">
       <header className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">
-          Próximos Aniversariantes
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Clientes que fazem aniversário nos próximos 30 dias.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">
+              Próximos Aniversariantes
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Clientes que fazem aniversário nos próximos 30 dias.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span>Sincronização Google Calendar</span>
+            </div>
+            <GoogleAuthButton />
+          </div>
+        </div>
       </header>
-      <main>{renderContent()}</main>
+      <main className="space-y-8">
+        {renderContent()}
+        
+        {/* Google Calendar Events Section with Auto-Sync */}
+        <CalendarSyncProvider autoSyncInterval={30000}>
+          <GoogleCalendarEventsSection />
+        </CalendarSyncProvider>
+      </main>
     </div>
   );
 };

@@ -117,6 +117,8 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     mutationFn: createOrder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      // Invalida o cache dos produtos mais vendidos para atualizar automaticamente
+      queryClient.invalidateQueries({ queryKey: ["topSellingProducts"] });
       onClose();
       resetState();
     },
