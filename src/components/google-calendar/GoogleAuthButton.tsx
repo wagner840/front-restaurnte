@@ -17,7 +17,7 @@ interface GoogleAuthButtonProps {
 }
 
 export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ className }) => {
-  const { authState, isLoading, error, signIn, signOut, isAuthenticated, user } = useGoogleAuth();
+  const { isLoading, error, signIn, signOut, isAuthenticated, user } = useGoogleAuth();
 
   if (isLoading) {
     return (

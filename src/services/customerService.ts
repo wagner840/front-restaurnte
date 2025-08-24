@@ -2,7 +2,6 @@ import { supabase } from "../lib/supabaseClient";
 import {
   Customer,
   BirthdayStatus,
-  CustomerAnalyticsData,
   CustomerDetails,
 } from "../types";
 import { toast } from "sonner";

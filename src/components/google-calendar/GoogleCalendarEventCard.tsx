@@ -6,7 +6,6 @@ import { Badge } from '../ui/badge';
 import { useGoogleCalendar } from '../../hooks/useGoogleCalendar';
 import { 
   Calendar, 
-  Clock, 
   Edit, 
   Trash2, 
   Save, 

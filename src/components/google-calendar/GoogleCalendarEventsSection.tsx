@@ -5,7 +5,7 @@ import { GoogleCalendarEventCard } from './GoogleCalendarEventCard';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
-import { AlertTriangle, Calendar, RefreshCw, Plus, Bug, Zap, ZapOff } from 'lucide-react';
+import { AlertTriangle, Calendar, RefreshCw, Bug, Zap, ZapOff } from 'lucide-react';
 import { googleCalendarService } from '../../services/google-calendar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -95,7 +95,7 @@ export const GoogleCalendarEventsSection: React.FC<GoogleCalendarEventsSectionPr
             <AlertTriangle className="h-5 w-5" />
             <span className="font-medium">Erro ao carregar eventos</span>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <p className="text-sm text-muted-foreground mb-4">{syncError}</p>
           <Button 
             variant="outline" 
             onClick={handleRefresh}

@@ -5,12 +5,10 @@ import { Skeleton } from "../../components/ui/skeleton";
 import { GoogleAuthButton } from "../../components/google-calendar/GoogleAuthButton";
 import { GoogleCalendarEventsSection } from "../../components/google-calendar/GoogleCalendarEventsSection";
 import { CalendarSyncProvider } from "../../components/google-calendar/CalendarSyncProvider";
-import { useGoogleAuth } from "../../hooks/useGoogleAuth";
 import { AlertTriangle, PartyPopper, Calendar } from "lucide-react";
 
 export const BirthdaysScreen: React.FC = () => {
   const { data: customers = [], isLoading, isError } = useBirthdayCustomers();
-  const { isAuthenticated } = useGoogleAuth();
 
   const renderContent = () => {
     if (isLoading) {
